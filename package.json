@@ -11,9 +11,8 @@
     ],
     "dependencies": {
         "@stablelib/bytewriter": "^1.0.1",
-        "@stablelib/hkdf": "^1.0.1",
-        "@stablelib/sha256": "^1.0.1",
-        "libsodium-wrappers-sumo": "^0.7.9"
+        "libsodium-wrappers-sumo": "file:vendor/libsodium-wrappers-23638ab.cjs",
+        "libsodium-sumo": "file:vendor/libsodium-sumo-23638ab.cjs"
     },
     "scripts": {
         "test": "mocha -r ts-node/register *.test.ts **/*.test.ts"

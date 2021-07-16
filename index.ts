@@ -2,7 +2,6 @@ import * as sodium from "libsodium-wrappers-sumo"
 import { from_base64, base64_variants, from_string } from "libsodium-wrappers-sumo"
 import { parseHeader, Stanza } from "./lib/format"
 import { HKDF } from "./lib/hkdf"
-import { ByteWriter } from "@stablelib/bytewriter"
 
 export class AgeDecrypter {
   identities: string[] = []
