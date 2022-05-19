@@ -1,6 +1,7 @@
 import * as sodium from "libsodium-wrappers-sumo"
 import { from_string } from "libsodium-wrappers-sumo"
 
+// @types/libsodium-wrappers-sumo is missing these definitions.
 declare module "libsodium-wrappers-sumo" {
     export function crypto_auth_hmacsha256_init(key: Uint8Array): sodium.StateAddress;
     export function crypto_auth_hmacsha256_update(stateAddress: sodium.StateAddress, messageChunk: Uint8Array): void;
