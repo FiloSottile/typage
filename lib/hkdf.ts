@@ -8,16 +8,17 @@ declare module "libsodium-wrappers-sumo" {
     export function crypto_auth_hmacsha256_final(stateAddress: sodium.StateAddress): Uint8Array;
 }
 
-export function HKDF(salt: Uint8Array | null, label: string, secret: Uint8Array): Uint8Array {
+// HKDF extracts 32 bytes from HKDF-SHA-256 with the specified input key material, salt, and info.
+export function HKDF(ikm: Uint8Array, salt: Uint8Array | null, info: string): Uint8Array {
     if (salt === null) { salt = new Uint8Array(32) }
 
     const h = sodium.crypto_auth_hmacsha256_init(salt)
-    sodium.crypto_auth_hmacsha256_update(h, secret)
+    sodium.crypto_auth_hmacsha256_update(h, ikm)
     const prk = sodium.crypto_auth_hmacsha256_final(h)
 
-    const infoAndCounter = new Uint8Array(label.length + 1)
-    infoAndCounter.set(from_string(label))
-    infoAndCounter[label.length] = 1
+    const infoAndCounter = new Uint8Array(info.length + 1)
+    infoAndCounter.set(from_string(info))
+    infoAndCounter[info.length] = 1
 
     return sodium.crypto_auth_hmacsha256(infoAndCounter, prk)
 }

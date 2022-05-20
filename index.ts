@@ -1,6 +1,7 @@
 import * as sodium from "libsodium-wrappers-sumo"
 import { from_base64, base64_variants, from_string } from "libsodium-wrappers-sumo"
 import { parseHeader, Stanza } from "./lib/format"
+import { decryptSTREAM } from "./lib/stream"
 import { HKDF } from "./lib/hkdf"
 
 export class AgeDecrypter {
@@ -28,20 +29,16 @@ export class AgeDecrypter {
       throw Error("no identity matched any of the file's recipients")
     }
 
-    const hmacKey = HKDF(null, "header", fileKey)
+    const hmacKey = HKDF(fileKey, null, "header")
     if (!sodium.crypto_auth_hmacsha256_verify(h.MAC, h.headerNoMAC, hmacKey)) {
       throw Error("invalid header HMAC")
     }
 
     const nonce = h.rest.subarray(0, 16)
-    const streamKey = HKDF(nonce, "payload", fileKey)
+    const streamKey = HKDF(fileKey, nonce, "payload")
     const payload = h.rest.subarray(16)
 
-    // TODO: actual STREAM implementation
-    const streamNonce = new Uint8Array(12)
-    streamNonce[11] = 1
-
-    return sodium.crypto_aead_chacha20poly1305_ietf_decrypt(null, payload, null, streamNonce, streamKey)
+    return decryptSTREAM(streamKey, payload)
   }
 }
 

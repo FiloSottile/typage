@@ -17,10 +17,19 @@ class ByteReader {
         this.arr = arr
     }
 
+    private toString(bytes: Uint8Array): string {
+        bytes.forEach((b) => {
+            if (b < 32 || b > 136) {
+                throw Error("invalid non-ASCII byte in header")
+            }
+        })
+        return to_string(bytes)
+    }
+
     readString(n: number): string {
         const out = this.arr.subarray(0, n)
         this.arr = this.arr.subarray(n)
-        return to_string(out)
+        return this.toString(out)
     }
 
     readLine(): string | null {
@@ -28,7 +37,7 @@ class ByteReader {
         if (i >= 0) {
             const out = this.arr.subarray(0, i)
             this.arr = this.arr.subarray(i + 1)
-            return to_string(out)
+            return this.toString(out)
         }
         return null
     }
@@ -52,7 +61,6 @@ function parseNextStanza(header: Uint8Array): [s: Stanza, rest: Uint8Array] {
     if (args.length < 1) {
         throw Error("invalid stanza")
     }
-    // TODO: check args are ASCII-only.
 
     const body = new ByteWriter
     for (; ;) {
