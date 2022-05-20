@@ -13,7 +13,8 @@ export function decryptSTREAM(key: Uint8Array, ciphertext: Uint8Array): Uint8Arr
         }
     }
 
-    const overhead = Math.ceil(ciphertext.length / chunkSize) * 16
+    const overhead = Math.ceil(ciphertext.length / chunkSize) *
+        sodium.crypto_aead_chacha20poly1305_IETF_ABYTES
     const plaintext = new Uint8Array(ciphertext.length - overhead)
 
     let rest = ciphertext

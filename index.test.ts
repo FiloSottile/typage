@@ -6,10 +6,16 @@ const fromBase64 = (s: string) => from_base64(s, base64_variants.ORIGINAL_NO_PAD
 
 describe('AgeDecrypter', function () {
     it('should decrypt a file with the right passphrase', async function () {
-        this.timeout(5000)
         const d = new AgeDecrypter()
         d.addPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
-        const file = fromBase64("YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IHNjcnlwdCBtRld1R1VqUGxQM25ZdCtIOU03WHN3IDE4CkRnRWRIVnF0N0pZNGg0cWJaMmJKRzdteS9mNHhhR1lqUVo4MkR3WWR4NVEKLS0tIDQ5bmRwY1hRN2kvc0I0VndlUzg3V2tiWGFLY1dzcENkVzFDZnBHWlZMWVEK1txQDiJz/J97zMFjZX/tDp10RCfFgBYd4Tt17tfaNfsZaR5E+A")
+        const file = fromBase64("YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IHNjcnlwdCB4Y2lkcXJQdmwwZzRROEZ5eXU4dHNnIDgKNnM2Ylp2Vlg2b0NBSVp2QkxCZEhJbEJrYUcreWRIZHVHWVpBaUJkUy9ZMAotLS0gZ280TkNGT05VTDEwZW5WRjVPMnkxem05eWQwdkM0S09hSU1nV05aYW5QSQom4WH7RYXsjlDm3HNKCe9gY2IfCjTY/2t6PF4bzUkeWZWkE7kd")
+        assert.deepEqual(to_string(await d.decrypt(file)), "test\n")
+    })
+
+    it('should decrypt a file with the right identity', async function () {
+        const d = new AgeDecrypter()
+        d.addIdentity("AGE-SECRET-KEY-1L27NYJDYRNDSCCELNZE8C6JTSH22TLQJVPGD7289KDLMZA5HWN6SZPEHGF")
+        const file = fromBase64("YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBOb280UHUyVWZwTllzY3Z5OU1tTjlscHV1Smt4Nng0MEZkdGZoQzd1dVFZCmk0VUNvVmoxbEhHalV0bVR2MHFyRGl0YzNtMXdoY1oyVUtvWDU3MUQwR1EKLS0tIGJ1RTZSYmR6ZlNHSk5tSGl3U2hqR1FFUDF4eEdjSGZtbXlYQUN4SnM4RDAKyqdZXpg65sTtmakjxLONtEgaSwXeS8t+7jAWvlleVEFO4/9QIQ")
         assert.deepEqual(to_string(await d.decrypt(file)), "test\n")
     })
 })
