@@ -1,4 +1,6 @@
-import { base64_variants, from_base64, to_base64, to_string } from "libsodium-wrappers-sumo"
+import { base64_variants, from_base64, to_string } from "libsodium-wrappers-sumo"
+
+export const decodeBase64 = (s: string) => from_base64(s, base64_variants.ORIGINAL_NO_PADDING)
 
 export class Stanza {
     readonly args: string[]
@@ -67,13 +69,9 @@ function parseNextStanza(header: Uint8Array): [s: Stanza, rest: Uint8Array] {
         if (nextLine === null) {
             throw Error("invalid stanza")
         }
-        const line = from_base64(nextLine, base64_variants.ORIGINAL_NO_PADDING)
+        const line = decodeBase64(nextLine)
         bodyLines.push(line)
         if (line.length < 48) {
-            const expected = to_base64(line, base64_variants.ORIGINAL_NO_PADDING)
-            if (expected !== nextLine) {
-                throw Error("invalid stanza")
-            }
             break
         }
     }
@@ -112,7 +110,7 @@ export function parseHeader(header: Uint8Array): {
             if (macLine === null) {
                 throw Error("invalid header")
             }
-            const mac = from_base64(macLine, base64_variants.ORIGINAL_NO_PADDING)
+            const mac = decodeBase64(macLine)
 
             return {
                 recipients: recipients,

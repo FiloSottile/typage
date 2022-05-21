@@ -1,7 +1,7 @@
 import * as sodium from "libsodium-wrappers-sumo"
-import { from_base64, base64_variants, from_string } from "libsodium-wrappers-sumo"
+import { from_string } from "libsodium-wrappers-sumo"
 import { decode as decodeBech32 } from "bech32-buffer"
-import { parseHeader, Stanza } from "./lib/format"
+import { decodeBase64, parseHeader, Stanza } from "./lib/format"
 import { decryptSTREAM } from "./lib/stream"
 import { HKDF } from "./lib/hkdf"
 
@@ -80,7 +80,7 @@ function x25519Unwrap(s: Stanza, i: x25519Identity): Uint8Array | null {
   if (s.args.length != 2) {
     throw Error("invalid X25519 stanza")
   }
-  const share = from_base64(s.args[1], base64_variants.ORIGINAL_NO_PADDING)
+  const share = decodeBase64(s.args[1])
   if (share.length !== sodium.crypto_scalarmult_curve25519_BYTES) {
     throw Error("invalid X25519 stanza")
   }
@@ -117,7 +117,7 @@ function scryptUnwrap(s: Stanza, passphrase: string): Uint8Array | null {
   if (!/^\d+$/.test(s.args[2])) {
     throw Error("invalid scrypt stanza")
   }
-  const salt = from_base64(s.args[1], base64_variants.ORIGINAL_NO_PADDING)
+  const salt = decodeBase64(s.args[1])
   if (salt.length !== 16) {
     throw Error("invalid scrypt stanza")
   }
