@@ -1,4 +1,3 @@
-import { ByteWriter } from "@stablelib/bytewriter"
 import { base64_variants, from_base64, to_base64, to_string } from "libsodium-wrappers-sumo"
 
 export class Stanza {
@@ -62,14 +61,14 @@ function parseNextStanza(header: Uint8Array): [s: Stanza, rest: Uint8Array] {
         throw Error("invalid stanza")
     }
 
-    const body = new ByteWriter
+    const bodyLines: Uint8Array[] = []
     for (; ;) {
         const nextLine = hdr.readLine()
         if (nextLine === null) {
             throw Error("invalid stanza")
         }
         const line = from_base64(nextLine, base64_variants.ORIGINAL_NO_PADDING)
-        body.write(line)
+        bodyLines.push(line)
         if (line.length < 48) {
             const expected = to_base64(line, base64_variants.ORIGINAL_NO_PADDING)
             if (expected !== nextLine) {
@@ -79,7 +78,15 @@ function parseNextStanza(header: Uint8Array): [s: Stanza, rest: Uint8Array] {
         }
     }
 
-    return [new Stanza(args, body.finish()), hdr.rest()]
+    const bodyLen = bodyLines.reduce(((sum, line) => sum + line.length), 0)
+    const body = new Uint8Array(bodyLen)
+    let n = 0
+    for (const line of bodyLines) {
+        body.set(line, n)
+        n += line.length
+    }
+
+    return [new Stanza(args, body), hdr.rest()]
 }
 
 export function parseHeader(header: Uint8Array): {
