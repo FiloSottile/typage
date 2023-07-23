@@ -1,7 +1,8 @@
-import { strict as assert } from 'assert'
+import * as assert from 'assert'
 import { AgeDecrypter } from '.'
 import { readFileSync, readdirSync } from 'fs'
 import { crypto_hash_sha256, to_hex } from 'libsodium-wrappers-sumo';
+import { encodeHeader, encodeHeaderNoMAC, parseHeader } from './lib/format'
 
 describe('AgeDecrypter', function () {
     interface Vector {
@@ -35,6 +36,16 @@ describe('AgeDecrypter', function () {
                         d.addIdentity(vec.meta.identity)
                     const plaintext = await d.decrypt(vec.body)
                     assert.equal(to_hex(crypto_hash_sha256(plaintext)), vec.meta.payload)
+                })
+
+                it(vec.name + " should round-trip header encoding", function () {
+                    const h = parseHeader(vec.body)
+                    assert.deepEqual(encodeHeaderNoMAC(h.recipients), h.headerNoMAC)
+                    const hh = encodeHeader(h.recipients, h.MAC)
+                    const got = new Uint8Array(hh.length + h.rest.length)
+                    got.set(hh)
+                    got.set(h.rest, hh.length)
+                    assert.deepEqual(got, vec.body)
                 })
             } else {
                 it(vec.name + " should fail", async function () {

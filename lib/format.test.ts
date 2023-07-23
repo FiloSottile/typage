@@ -1,6 +1,6 @@
 import { strict as assert } from 'assert'
-import { from_string } from 'libsodium-wrappers-sumo'
-import { decodeBase64, parseHeader } from './format'
+import { from_string, to_string } from 'libsodium-wrappers-sumo'
+import { decodeBase64, encodeHeader, encodeHeaderNoMAC, parseHeader } from './format'
 
 const exampleHeader = `age-encryption.org/v1
 -> X25519 abc
@@ -16,6 +16,12 @@ describe('parseHeader', () => {
         assert.deepEqual(h.recipients[0].body, decodeBase64("0OrTkKHpE7klNLd0k+9Uam5hkQkzMxaqKcIPRIO1sNE"))
         assert.deepEqual(h.MAC, decodeBase64("gxhoSa5BciRDt8lOpYNcx4EYtKpS0CJ06F3ZwN82VaM"))
         assert.deepEqual(h.rest, from_string("this is the payload"))
+    })
+    it('should reencode to the original header', () => {
+        const h = parseHeader(from_string(exampleHeader))
+        assert.deepEqual(encodeHeaderNoMAC(h.recipients), h.headerNoMAC)
+        const got = to_string(encodeHeader(h.recipients, h.MAC)) + to_string(h.rest)
+        assert.deepEqual(got, exampleHeader)
     })
 })
 

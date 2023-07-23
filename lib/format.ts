@@ -1,6 +1,7 @@
-import { base64_variants, from_base64, to_string } from "libsodium-wrappers-sumo"
+import { base64_variants, from_base64, from_string, to_base64, to_string } from "libsodium-wrappers-sumo"
 
 export const decodeBase64 = (s: string) => from_base64(s, base64_variants.ORIGINAL_NO_PADDING)
+export const encodeBase64 = (s: Uint8Array) => to_base64(s, base64_variants.ORIGINAL_NO_PADDING)
 
 export class Stanza {
     readonly args: string[]
@@ -83,22 +84,26 @@ function parseNextStanza(header: Uint8Array): [s: Stanza, rest: Uint8Array] {
             break
         }
     }
-
-    const bodyLen = bodyLines.reduce(((sum, line) => sum + line.length), 0)
-    const body = new Uint8Array(bodyLen)
-    let n = 0
-    for (const line of bodyLines) {
-        body.set(line, n)
-        n += line.length
-    }
+    const body = flattenArray(bodyLines)
 
     return [new Stanza(args, body), hdr.rest()]
+}
+
+function flattenArray(arr: Uint8Array[]): Uint8Array {
+    const len = arr.reduce(((sum, line) => sum + line.length), 0)
+    const out = new Uint8Array(len)
+    let n = 0
+    for (const a of arr) {
+        out.set(a, n)
+        n += a.length
+    }
+    return out
 }
 
 export function parseHeader(header: Uint8Array): {
     recipients: Stanza[], MAC: Uint8Array, headerNoMAC: Uint8Array, rest: Uint8Array
 } {
-    let hdr = new ByteReader(header)
+    const hdr = new ByteReader(header)
     const versionLine = hdr.readLine()
     if (versionLine !== "age-encryption.org/v1") {
         throw Error("invalid version " + versionLine)
@@ -111,7 +116,7 @@ export function parseHeader(header: Uint8Array): {
         [s, rest] = parseNextStanza(rest)
         recipients.push(s)
 
-        hdr = new ByteReader(rest)
+        const hdr = new ByteReader(rest)
         if (hdr.readString(4) === "--- ") {
             const headerNoMAC = header.subarray(0, header.length - hdr.rest().length - 1)
             const macLine = hdr.readLine()
@@ -128,4 +133,29 @@ export function parseHeader(header: Uint8Array): {
             }
         }
     }
+}
+
+export function encodeHeaderNoMAC(recipients: Stanza[]): Uint8Array {
+    const lines: string[] = []
+    lines.push("age-encryption.org/v1\n")
+
+    for (const s of recipients) {
+        lines.push("-> " + s.args.join(" ") + "\n")
+        for (let i = 0; i < s.body.length; i += 48) {
+            let end = i + 48
+            if (end > s.body.length) end = s.body.length
+            lines.push(encodeBase64(s.body.subarray(i, end)) + "\n")
+        }
+        if (s.body.length % 48 == 0) lines.push("\n")
+    }
+
+    lines.push("---")
+    return from_string(lines.join(""))
+}
+
+export function encodeHeader(recipients: Stanza[], MAC: Uint8Array): Uint8Array {
+    return flattenArray([
+        encodeHeaderNoMAC(recipients),
+        from_string(" " + encodeBase64(MAC) + "\n")
+    ])
 }
