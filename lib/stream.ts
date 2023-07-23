@@ -32,6 +32,8 @@ export function decryptSTREAM(key: Uint8Array, ciphertext: Uint8Array): Uint8Arr
     streamNonce[11] = 1 // Last chunk flag.
     const chunk = sodium.crypto_aead_chacha20poly1305_ietf_decrypt(null, ciphertext, null, streamNonce, key)
     plaintextSlice.set(chunk)
+    if (chunk.length == 0 && plaintext.length != 0)
+        throw Error("empty final chunk")
     if (plaintextSlice.length != chunk.length)
         throw Error("stream: internal error: didn't fill expected plaintext buffer")
 

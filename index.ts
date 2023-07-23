@@ -114,7 +114,7 @@ function scryptUnwrap(s: Stanza, passphrase: string): Uint8Array | null {
   if (s.args.length != 3) {
     throw Error("invalid scrypt stanza")
   }
-  if (!/^\d+$/.test(s.args[2])) {
+  if (!/^[1-9][0-9]*$/.test(s.args[2])) {
     throw Error("invalid scrypt stanza")
   }
   const salt = decodeBase64(s.args[1])

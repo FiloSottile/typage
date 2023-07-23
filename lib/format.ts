@@ -62,6 +62,11 @@ function parseNextStanza(header: Uint8Array): [s: Stanza, rest: Uint8Array] {
     if (args.length < 1) {
         throw Error("invalid stanza")
     }
+    for (const arg of args) {
+        if (arg.length == 0) {
+            throw Error("invalid stanza")
+        }
+    }
 
     const bodyLines: Uint8Array[] = []
     for (; ;) {
@@ -70,6 +75,9 @@ function parseNextStanza(header: Uint8Array): [s: Stanza, rest: Uint8Array] {
             throw Error("invalid stanza")
         }
         const line = decodeBase64(nextLine)
+        if (line.length > 48) {
+            throw Error("invalid stanza")
+        }
         bodyLines.push(line)
         if (line.length < 48) {
             break
