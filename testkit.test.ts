@@ -1,8 +1,10 @@
 import * as assert from 'assert'
 import { AgeDecrypter } from '.'
 import { readFileSync, readdirSync } from 'fs'
-import { crypto_hash_sha256, to_hex } from 'libsodium-wrappers-sumo';
+import { crypto_hash_sha256, from_hex, to_hex } from 'libsodium-wrappers-sumo';
 import { encodeHeader, encodeHeaderNoMAC, parseHeader } from './lib/format'
+import { decryptSTREAM, encryptSTREAM } from './lib/stream';
+import { HKDF } from './lib/hkdf';
 
 describe('AgeDecrypter', function () {
     interface Vector {
@@ -37,7 +39,6 @@ describe('AgeDecrypter', function () {
                     const plaintext = await d.decrypt(vec.body)
                     assert.equal(to_hex(crypto_hash_sha256(plaintext)), vec.meta.payload)
                 })
-
                 it(vec.name + " should round-trip header encoding", function () {
                     const h = parseHeader(vec.body)
                     assert.deepEqual(encodeHeaderNoMAC(h.recipients), h.headerNoMAC)
@@ -46,6 +47,14 @@ describe('AgeDecrypter', function () {
                     got.set(hh)
                     got.set(h.rest, hh.length)
                     assert.deepEqual(got, vec.body)
+                })
+                it(vec.name + " should round-trip STREAM encryption", function () {
+                    const h = parseHeader(vec.body)
+                    const nonce = h.rest.subarray(0, 16)
+                    const streamKey = HKDF(from_hex(vec.meta["file key"]), nonce, "payload")
+                    const payload = h.rest.subarray(16)
+                    const plaintext = decryptSTREAM(streamKey, payload)
+                    assert.deepEqual(encryptSTREAM(streamKey, plaintext), payload)
                 })
             } else {
                 it(vec.name + " should fail", async function () {
