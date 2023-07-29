@@ -1,5 +1,5 @@
 {
-    "name": "age",
+    "name": "age-encryption",
     "version": "0.0.1",
     "main": "index.ts",
     "repository": "github:FiloSottile/age.ts",
@@ -28,6 +28,6 @@
         "ts-node": "^9.1.1",
         "typescript": "^4.9.5"
     },
-    "author": "Filippo Valsorda",
+    "author": "Filippo Valsorda <npm@filippo.io> (https://filippo.io)",
     "license": "BSD-3-Clause"
 }
