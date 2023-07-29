@@ -1,10 +1,10 @@
 import * as assert from 'assert'
 import { AgeDecrypter } from '.'
 import { readFileSync, readdirSync } from 'fs'
-import { crypto_hash_sha256, from_hex, to_hex } from 'libsodium-wrappers-sumo';
+import { crypto_hash_sha256, from_hex, to_hex } from 'libsodium-wrappers-sumo'
 import { encodeHeader, encodeHeaderNoMAC, parseHeader } from './lib/format'
-import { decryptSTREAM, encryptSTREAM } from './lib/stream';
-import { HKDF } from './lib/hkdf';
+import { decryptSTREAM, encryptSTREAM } from './lib/stream'
+import { HKDF } from './lib/hkdf'
 
 describe('AgeDecrypter', function () {
     interface Vector {
@@ -68,4 +68,4 @@ describe('AgeDecrypter', function () {
             }
         }
     })
-});
+})
