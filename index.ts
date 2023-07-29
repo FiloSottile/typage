@@ -1,9 +1,115 @@
 import * as sodium from "libsodium-wrappers-sumo"
 import { from_string } from "libsodium-wrappers-sumo"
-import { decode as decodeBech32 } from "bech32-buffer"
-import { decodeBase64, parseHeader, Stanza } from "./lib/format"
-import { decryptSTREAM } from "./lib/stream"
+import { decode as decodeBech32, encode as encodeBech32 } from "bech32-buffer"
+import { decodeBase64, encodeBase64, encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./lib/format"
+import { decryptSTREAM, encryptSTREAM } from "./lib/stream"
 import { HKDF } from "./lib/hkdf"
+
+export async function generateX25519Identity(): Promise<string> {
+  await sodium.ready
+
+  const scalar = sodium.randombytes_buf(sodium.crypto_scalarmult_curve25519_SCALARBYTES)
+  return encodeBech32("AGE-SECRET-KEY-", scalar)
+}
+
+export async function x25519IdentityToRecipient(identity: string): Promise<string> {
+  await sodium.ready
+
+  const res = decodeBech32(identity)
+  if (!identity.startsWith("AGE-SECRET-KEY-1") ||
+    res.prefix.toUpperCase() != "AGE-SECRET-KEY-" || res.encoding != "bech32" ||
+    res.data.length != sodium.crypto_scalarmult_curve25519_SCALARBYTES)
+    throw Error("invalid identity")
+
+  const recipient = sodium.crypto_scalarmult_base(res.data)
+  return encodeBech32("age", recipient)
+}
+
+export class AgeEncrypter {
+  private passphrase: string | null = null
+  private scryptWorkFactor = 18
+  private recipients: Uint8Array[] = []
+
+  addPassphrase(s: string): void {
+    if (this.passphrase !== null)
+      throw new Error("can encrypt to at most one passphrase")
+    if (this.recipients.length != 0)
+      throw new Error("can't encrypt to both recipients and passphrases")
+    this.passphrase = s
+  }
+
+  setScryptWorkFactor(logN: number): void {
+    this.scryptWorkFactor = logN
+  }
+
+  addRecipient(s: string): void {
+    if (this.passphrase !== null)
+      throw new Error("can't encrypt to both recipients and passphrases")
+    const res = decodeBech32(s)
+    if (!s.startsWith("age1") ||
+      res.prefix.toLowerCase() != "age" || res.encoding != "bech32" ||
+      res.data.length != sodium.crypto_scalarmult_curve25519_BYTES)
+      throw Error("invalid recipient")
+    this.recipients.push(res.data)
+  }
+
+  async encrypt(file: Uint8Array): Promise<Uint8Array> {
+    await sodium.ready
+
+    const fileKey = sodium.randombytes_buf(16)
+    const stanzas: Stanza[] = []
+
+    for (const recipient of this.recipients) {
+      stanzas.push(x25519Wrap(fileKey, recipient))
+    }
+    if (this.passphrase !== null) {
+      stanzas.push(scryptWrap(fileKey, this.passphrase, this.scryptWorkFactor))
+    }
+
+    const hmacKey = HKDF(fileKey, null, "header")
+    const mac = sodium.crypto_auth_hmacsha256(encodeHeaderNoMAC(stanzas), hmacKey)
+    const header = encodeHeader(stanzas, mac)
+
+    const nonce = sodium.randombytes_buf(16)
+    const streamKey = HKDF(fileKey, nonce, "payload")
+    const payload = encryptSTREAM(streamKey, file)
+
+    const out = new Uint8Array(header.length + nonce.length + payload.length)
+    out.set(header)
+    out.set(nonce, header.length)
+    out.set(payload, header.length + nonce.length)
+    return out
+  }
+}
+
+function x25519Wrap(fileKey: Uint8Array, recipient: Uint8Array): Stanza {
+  const ephemeral = sodium.randombytes_buf(sodium.crypto_scalarmult_curve25519_SCALARBYTES)
+  const share = sodium.crypto_scalarmult_base(ephemeral)
+  const secret = sodium.crypto_scalarmult(ephemeral, recipient)
+
+  const salt = new Uint8Array(share.length + recipient.length)
+  salt.set(share)
+  salt.set(recipient, share.length)
+
+  const key = HKDF(secret, salt, "age-encryption.org/v1/X25519")
+  return new Stanza(["X25519", encodeBase64(share)], encryptFileKey(fileKey, key))
+}
+
+function encryptFileKey(fileKey: Uint8Array, key: Uint8Array): Uint8Array {
+  const nonce = new Uint8Array(sodium.crypto_aead_chacha20poly1305_IETF_NPUBBYTES)
+  return sodium.crypto_aead_chacha20poly1305_ietf_encrypt(fileKey, null, null, nonce, key)
+}
+
+function scryptWrap(fileKey: Uint8Array, passphrase: string, logN: number): Stanza {
+  const salt = sodium.randombytes_buf(16)
+  const label = "age-encryption.org/v1/scrypt"
+  const labelAndSalt = new Uint8Array(label.length + 16)
+  labelAndSalt.set(from_string(label))
+  labelAndSalt.set(salt, label.length)
+
+  const key = sodium.crypto_pwhash_scryptsalsa208sha256_ll(passphrase, labelAndSalt, 2 ** logN, 8, 1, 32)
+  return new Stanza(["scrypt", encodeBase64(salt), logN.toString()], encryptFileKey(fileKey, key))
+}
 
 export class AgeDecrypter {
   private passphrases: string[] = []
