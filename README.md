@@ -25,30 +25,31 @@ npm install age-encryption
 import * as age from "age-encryption"
 
 await (async() => {
-    const identity = await age.generateX25519Identity()
-    const recipient = await age.x25519IdentityToRecipient(identity)
-
-    const e = new age.AgeEncrypter()
-    e.addRecipient(recipient)
-    const ciphertext = await e.encrypt(from_string("Hello, age!"))
-
-    const d = new age.AgeDecrypter()
-    d.addIdentity(identity)
-    const out = await d.decrypt(ciphertext)
+    const identity = await age.generateIdentity()
+    const recipient = await age.identityToRecipient(identity)
 
     console.log(identity)
     console.log(recipient)
+
+    const e = new age.Encrypter()
+    e.addRecipient(recipient)
+    const ciphertext = await e.encrypt("Hello, age!")
+
+    const d = new age.Decrypter()
+    d.addIdentity(identity)
+    const out = await d.decrypt(ciphertext, "text")
+
     console.log(out)
 })()
 
 await (async() => {
-    const e = new age.AgeEncrypter()
-    e.addPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-three")
-    const ciphertext = await e.encrypt(from_string("Hello, age!"))
+    const e = new age.Encrypter()
+    e.setPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-three")
+    const ciphertext = await e.encrypt("Hello, age!")
 
-    const d = new age.AgeDecrypter()
+    const d = new age.Decrypter()
     d.addPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-three")
-    const out = await d.decrypt(ciphertext)
+    const out = await d.decrypt(ciphertext, "text")
 
     console.log(out)
 })()

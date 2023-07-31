@@ -1,6 +1,6 @@
 {
     "name": "age-encryption",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "main": "index.ts",
     "repository": "github:FiloSottile/age.ts",
     "type": "module",

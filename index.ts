@@ -1,18 +1,18 @@
 import * as sodium from "libsodium-wrappers-sumo"
-import { from_string } from "libsodium-wrappers-sumo"
+import { from_string, to_string } from "libsodium-wrappers-sumo"
 import { decode as decodeBech32, encode as encodeBech32 } from "bech32-buffer"
 import { decodeBase64, encodeBase64, encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./lib/format"
 import { decryptSTREAM, encryptSTREAM } from "./lib/stream"
 import { HKDF } from "./lib/hkdf"
 
-export async function generateX25519Identity(): Promise<string> {
+export async function generateIdentity(): Promise<string> {
   await sodium.ready
 
   const scalar = sodium.randombytes_buf(sodium.crypto_scalarmult_curve25519_SCALARBYTES)
   return encodeBech32("AGE-SECRET-KEY-", scalar)
 }
 
-export async function x25519IdentityToRecipient(identity: string): Promise<string> {
+export async function identityToRecipient(identity: string): Promise<string> {
   await sodium.ready
 
   const res = decodeBech32(identity)
@@ -25,12 +25,12 @@ export async function x25519IdentityToRecipient(identity: string): Promise<strin
   return encodeBech32("age", recipient)
 }
 
-export class AgeEncrypter {
+export class Encrypter {
   private passphrase: string | null = null
   private scryptWorkFactor = 18
   private recipients: Uint8Array[] = []
 
-  addPassphrase(s: string): void {
+  setPassphrase(s: string): void {
     if (this.passphrase !== null)
       throw new Error("can encrypt to at most one passphrase")
     if (this.recipients.length != 0)
@@ -53,8 +53,12 @@ export class AgeEncrypter {
     this.recipients.push(res.data)
   }
 
-  async encrypt(file: Uint8Array): Promise<Uint8Array> {
+  async encrypt(file: Uint8Array | string): Promise<Uint8Array> {
     await sodium.ready
+
+    if (typeof file === "string") {
+      file = from_string(file)
+    }
 
     const fileKey = sodium.randombytes_buf(16)
     const stanzas: Stanza[] = []
@@ -111,7 +115,7 @@ function scryptWrap(fileKey: Uint8Array, passphrase: string, logN: number): Stan
   return new Stanza(["scrypt", encodeBase64(salt), logN.toString()], encryptFileKey(fileKey, key))
 }
 
-export class AgeDecrypter {
+export class Decrypter {
   private passphrases: string[] = []
   private identities: x25519Identity[] = []
 
@@ -131,7 +135,9 @@ export class AgeDecrypter {
     })
   }
 
-  async decrypt(file: Uint8Array): Promise<Uint8Array> {
+  async decrypt(file: Uint8Array, outputFormat?: "uint8array"): Promise<Uint8Array>
+  async decrypt(file: Uint8Array, outputFormat: "text"): Promise<string>
+  async decrypt(file: Uint8Array, outputFormat?: "text" | "uint8array"): Promise<Uint8Array | string> {
     await sodium.ready
 
     const h = parseHeader(file)
@@ -149,7 +155,9 @@ export class AgeDecrypter {
     const streamKey = HKDF(fileKey, nonce, "payload")
     const payload = h.rest.subarray(16)
 
-    return decryptSTREAM(streamKey, payload)
+    const out = decryptSTREAM(streamKey, payload)
+    if (outputFormat === "text") return to_string(out)
+    return out
   }
 
   private unwrapFileKey(recipients: Stanza[]): Uint8Array | null {

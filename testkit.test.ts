@@ -1,5 +1,5 @@
 import * as assert from 'assert'
-import { AgeDecrypter } from '.'
+import { Decrypter } from '.'
 import { readFileSync, readdirSync } from 'fs'
 import { crypto_hash_sha256, from_hex, to_hex } from 'libsodium-wrappers-sumo'
 import { encodeHeader, encodeHeaderNoMAC, parseHeader } from './lib/format'
@@ -30,7 +30,7 @@ describe('CCTV testkit', function () {
         if (vec.meta.armored) continue
         if (vec.meta.expect == "success") {
             it(vec.name + " should succeed", async function () {
-                const d = new AgeDecrypter()
+                const d = new Decrypter()
                 if (vec.meta.passphrase)
                     d.addPassphrase(vec.meta.passphrase)
                 if (vec.meta.identity)
@@ -57,7 +57,7 @@ describe('CCTV testkit', function () {
             })
         } else {
             it(vec.name + " should fail", async function () {
-                const d = new AgeDecrypter()
+                const d = new Decrypter()
                 if (vec.meta.passphrase)
                     d.addPassphrase(vec.meta.passphrase)
                 if (vec.meta.identity)
