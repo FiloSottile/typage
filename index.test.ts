@@ -13,7 +13,7 @@ describe('AgeDecrypter', function () {
     })
     it('should decrypt a file with the right identity', async function () {
         const d = new Decrypter()
-        d.addIdentity("AGE-SECRET-KEY-1L27NYJDYRNDSCCELNZE8C6JTSH22TLQJVPGD7289KDLMZA5HWN6SZPEHGF")
+        await d.addIdentity("AGE-SECRET-KEY-1L27NYJDYRNDSCCELNZE8C6JTSH22TLQJVPGD7289KDLMZA5HWN6SZPEHGF")
         const file = fromBase64("YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBOb280UHUyVWZwTllzY3Z5OU1tTjlscHV1Smt4Nng0MEZkdGZoQzd1dVFZCmk0VUNvVmoxbEhHalV0bVR2MHFyRGl0YzNtMXdoY1oyVUtvWDU3MUQwR1EKLS0tIGJ1RTZSYmR6ZlNHSk5tSGl3U2hqR1FFUDF4eEdjSGZtbXlYQUN4SnM4RDAKyqdZXpg65sTtmakjxLONtEgaSwXeS8t+7jAWvlleVEFO4/9QIQ")
         assert.equal(await d.decrypt(file, "text"), "test\n")
     })
@@ -25,11 +25,11 @@ describe('key generation', function () {
         const recipient = await identityToRecipient(identity)
 
         const e = new Encrypter()
-        e.addRecipient(recipient)
+        await e.addRecipient(recipient)
         const file = await e.encrypt("age")
 
         const d = new Decrypter()
-        d.addIdentity(identity)
+        await d.addIdentity(identity)
         const out = await d.decrypt(file, "text")
 
         assert.equal(out, "age")
@@ -51,23 +51,23 @@ describe('AgeEncrypter', function () {
     })
     it('should encrypt (and decrypt) a file with a recipient', async function () {
         const e = new Encrypter()
-        e.addRecipient("age1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl6")
+        await e.addRecipient("age1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl6")
         const file = await e.encrypt("age")
 
         const d = new Decrypter()
-        d.addIdentity("AGE-SECRET-KEY-1RKH0DGHQ0FU6VLXX2VW6Y3W2TKK7KR4J36N9SNDXK75JHCJ3N6JQNZJF5J")
+        await d.addIdentity("AGE-SECRET-KEY-1RKH0DGHQ0FU6VLXX2VW6Y3W2TKK7KR4J36N9SNDXK75JHCJ3N6JQNZJF5J")
         const out = await d.decrypt(file)
 
         assert.deepEqual(to_string(out), "age")
     })
     it('should encrypt (and decrypt) a file with multiple recipients', async function () {
         const e = new Encrypter()
-        e.addRecipient("age12wv74vxhhp9kg29j2wzm50c9p4urn7py0t4tzdgz6m0pcqjzmu9qqpzjqn")
-        e.addRecipient("age1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl6")
+        await e.addRecipient("age12wv74vxhhp9kg29j2wzm50c9p4urn7py0t4tzdgz6m0pcqjzmu9qqpzjqn")
+        await e.addRecipient("age1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl6")
         const file = await e.encrypt("age")
 
         const d = new Decrypter()
-        d.addIdentity("AGE-SECRET-KEY-1RKH0DGHQ0FU6VLXX2VW6Y3W2TKK7KR4J36N9SNDXK75JHCJ3N6JQNZJF5J")
+        await d.addIdentity("AGE-SECRET-KEY-1RKH0DGHQ0FU6VLXX2VW6Y3W2TKK7KR4J36N9SNDXK75JHCJ3N6JQNZJF5J")
         const out = await d.decrypt(file)
 
         assert.deepEqual(to_string(out), "age")
@@ -79,33 +79,33 @@ describe('AgeEncrypter', function () {
             e.setPassphrase("2")
         })
     })
-    it('should throw when using passphrases and recipients', function () {
+    it('should throw when using passphrases and recipients', async function () {
         const e = new Encrypter()
         e.setPassphrase("1")
-        assert.throws(function () {
-            e.addRecipient("age1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl6")
+        await assert.rejects(async function () {
+            await e.addRecipient("age1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl6")
         })
     })
-    it('should throw when using recipients and passphrases', function () {
+    it('should throw when using recipients and passphrases', async function () {
         const e = new Encrypter()
-        e.addRecipient("age1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl6")
+        await e.addRecipient("age1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl6")
         assert.throws(function () {
             e.setPassphrase("2")
         })
     })
-    it('should throw when using bad recipients', function () {
+    it('should throw when using bad recipients', async function () {
         const e = new Encrypter()
-        assert.throws(function () {
-            e.addRecipient("age1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl")
+        await assert.rejects(async function () {
+            await e.addRecipient("age1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl")
         })
-        assert.throws(function () {
-            e.addRecipient("AGE1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl6")
+        await assert.rejects(async function () {
+            await e.addRecipient("AGE1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl6")
         })
-        assert.throws(function () {
-            e.addRecipient("ag1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl6")
+        await assert.rejects(async function () {
+            await e.addRecipient("ag1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl6")
         })
-        assert.throws(function () {
-            e.addRecipient("age1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl7")
+        await assert.rejects(async function () {
+            await e.addRecipient("age1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl7")
         })
     })
 })

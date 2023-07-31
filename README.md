@@ -32,11 +32,11 @@ await (async() => {
     console.log(recipient)
 
     const e = new age.Encrypter()
-    e.addRecipient(recipient)
+    await e.addRecipient(recipient)
     const ciphertext = await e.encrypt("Hello, age!")
 
     const d = new age.Decrypter()
-    d.addIdentity(identity)
+    await d.addIdentity(identity)
     const out = await d.decrypt(ciphertext, "text")
 
     console.log(out)

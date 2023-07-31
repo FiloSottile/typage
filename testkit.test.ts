@@ -34,7 +34,7 @@ describe('CCTV testkit', function () {
                 if (vec.meta.passphrase)
                     d.addPassphrase(vec.meta.passphrase)
                 if (vec.meta.identity)
-                    d.addIdentity(vec.meta.identity)
+                    await d.addIdentity(vec.meta.identity)
                 const plaintext = await d.decrypt(vec.body)
                 assert.equal(to_hex(crypto_hash_sha256(plaintext)), vec.meta.payload)
             })
@@ -61,7 +61,7 @@ describe('CCTV testkit', function () {
                 if (vec.meta.passphrase)
                     d.addPassphrase(vec.meta.passphrase)
                 if (vec.meta.identity)
-                    d.addIdentity(vec.meta.identity)
+                    await d.addIdentity(vec.meta.identity)
                 await assert.rejects(d.decrypt(vec.body))
             })
         }
