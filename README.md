@@ -24,37 +24,34 @@ npm install age-encryption
 ```ts
 import age from "age-encryption"
 
-{
-    const { Encrypter, Decrypter, generateIdentity, identityToRecipient } = await age()
+// Initialize the library (calls sodium.ready).
 
-    const identity = await generateIdentity()
-    const recipient = await identityToRecipient(identity)
+const { Encrypter, Decrypter, generateIdentity, identityToRecipient } = await age()
 
-    console.log(identity)
-    console.log(recipient)
+// Encrypt and decrypt a file with a new recipient / identity pair.
 
-    const e = new Encrypter()
-    await e.addRecipient(recipient)
-    const ciphertext = await e.encrypt("Hello, age!")
+const identity = generateIdentity()
+const recipient = identityToRecipient(identity)
+console.log(identity)
+console.log(recipient)
 
-    const d = new Decrypter()
-    await d.addIdentity(identity)
-    const out = await d.decrypt(ciphertext, "text")
+const e = new Encrypter()
+e.addRecipient(recipient)
+const ciphertext = e.encrypt("Hello, age!")
 
-    console.log(out)
-}
+const d = new Decrypter()
+d.addIdentity(identity)
+const out = d.decrypt(ciphertext, "text")
+console.log(out)
 
-{
-    const { Encrypter, Decrypter } = await age()
+// Encrypt and decrypt a file with a passphrase.
 
-    const e = new Encrypter()
-    e.setPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-three")
-    const ciphertext = await e.encrypt("Hello, age!")
+const e = new Encrypter()
+e.setPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-three")
+const ciphertext = e.encrypt("Hello, age!")
 
-    const d = new Decrypter()
-    d.addPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-three")
-    const out = await d.decrypt(ciphertext, "text")
-
-    console.log(out)
-}
+const d = new Decrypter()
+d.addPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-three")
+const out = d.decrypt(ciphertext, "text")
+console.log(out)
 ```
