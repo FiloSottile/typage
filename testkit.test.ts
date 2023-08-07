@@ -1,5 +1,5 @@
 import * as assert from 'assert'
-import { Decrypter } from '.'
+import age from '.'
 import { readFileSync, readdirSync } from 'fs'
 import { crypto_hash_sha256, from_hex, to_hex } from 'libsodium-wrappers-sumo'
 import { encodeHeader, encodeHeaderNoMAC, parseHeader } from './lib/format'
@@ -30,12 +30,13 @@ describe('CCTV testkit', function () {
         if (vec.meta.armored) continue
         if (vec.meta.expect == "success") {
             it(vec.name + " should succeed", async function () {
+                const { Decrypter } = await age()
                 const d = new Decrypter()
                 if (vec.meta.passphrase)
                     d.addPassphrase(vec.meta.passphrase)
                 if (vec.meta.identity)
-                    await d.addIdentity(vec.meta.identity)
-                const plaintext = await d.decrypt(vec.body)
+                    d.addIdentity(vec.meta.identity)
+                const plaintext = d.decrypt(vec.body)
                 assert.equal(to_hex(crypto_hash_sha256(plaintext)), vec.meta.payload)
             })
             it(vec.name + " should round-trip header encoding", function () {
@@ -57,12 +58,13 @@ describe('CCTV testkit', function () {
             })
         } else {
             it(vec.name + " should fail", async function () {
+                const { Decrypter } = await age()
                 const d = new Decrypter()
                 if (vec.meta.passphrase)
                     d.addPassphrase(vec.meta.passphrase)
                 if (vec.meta.identity)
-                    await d.addIdentity(vec.meta.identity)
-                await assert.rejects(d.decrypt(vec.body))
+                    d.addIdentity(vec.meta.identity)
+                assert.throws(() => { d.decrypt(vec.body) })
             })
         }
     }

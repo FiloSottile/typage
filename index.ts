@@ -1,4 +1,4 @@
-import * as _sodium from "libsodium-wrappers-sumo"
+import * as sodium from "libsodium-wrappers-sumo"
 import { from_string, to_string } from "libsodium-wrappers-sumo"
 import { decode as decodeBech32, encode as encodeBech32 } from "bech32-buffer"
 import { scryptUnwrap, scryptWrap, x25519Identity, x25519Unwrap, x25519Wrap } from "./lib/recipients"
@@ -6,21 +6,34 @@ import { encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./lib/form
 import { decryptSTREAM, encryptSTREAM } from "./lib/stream"
 import { HKDF } from "./lib/hkdf"
 
-async function loadSodium(): Promise<typeof _sodium> {
-  await _sodium.ready
-  return _sodium
+interface age {
+  Encrypter: new () => Encrypter;
+  Decrypter: new () => Decrypter;
+  generateIdentity: () => string;
+  identityToRecipient: (identity: string) => string;
 }
 
-export async function generateIdentity(): Promise<string> {
-  const sodium = await loadSodium()
+let initDone = false
 
+export default async function init(): Promise<age> {
+  if (!initDone) {
+    await sodium.ready
+    initDone = true
+  }
+  return {
+    Encrypter: Encrypter,
+    Decrypter: Decrypter,
+    generateIdentity: generateIdentity,
+    identityToRecipient: identityToRecipient,
+  }
+}
+
+function generateIdentity(): string {
   const scalar = sodium.randombytes_buf(sodium.crypto_scalarmult_curve25519_SCALARBYTES)
   return encodeBech32("AGE-SECRET-KEY-", scalar)
 }
 
-export async function identityToRecipient(identity: string): Promise<string> {
-  const sodium = await loadSodium()
-
+function identityToRecipient(identity: string): string {
   const res = decodeBech32(identity)
   if (!identity.startsWith("AGE-SECRET-KEY-1") ||
     res.prefix.toUpperCase() != "AGE-SECRET-KEY-" || res.encoding != "bech32" ||
@@ -31,7 +44,7 @@ export async function identityToRecipient(identity: string): Promise<string> {
   return encodeBech32("age", recipient)
 }
 
-export class Encrypter {
+class Encrypter {
   private passphrase: string | null = null
   private scryptWorkFactor = 18
   private recipients: Uint8Array[] = []
@@ -48,8 +61,7 @@ export class Encrypter {
     this.scryptWorkFactor = logN
   }
 
-  async addRecipient(s: string): Promise<void> {
-    const sodium = await loadSodium()
+  addRecipient(s: string): void {
     if (this.passphrase !== null)
       throw new Error("can't encrypt to both recipients and passphrases")
     const res = decodeBech32(s)
@@ -60,9 +72,7 @@ export class Encrypter {
     this.recipients.push(res.data)
   }
 
-  async encrypt(file: Uint8Array | string): Promise<Uint8Array> {
-    const sodium = await loadSodium()
-
+  encrypt(file: Uint8Array | string): Uint8Array {
     if (typeof file === "string") {
       file = from_string(file)
     }
@@ -93,7 +103,7 @@ export class Encrypter {
   }
 }
 
-export class Decrypter {
+class Decrypter {
   private passphrases: string[] = []
   private identities: x25519Identity[] = []
 
@@ -101,8 +111,7 @@ export class Decrypter {
     this.passphrases.push(s)
   }
 
-  async addIdentity(s: string): Promise<void> {
-    const sodium = await loadSodium()
+  addIdentity(s: string): void {
     const res = decodeBech32(s)
     if (!s.startsWith("AGE-SECRET-KEY-1") ||
       res.prefix.toUpperCase() != "AGE-SECRET-KEY-" || res.encoding != "bech32" ||
@@ -114,11 +123,9 @@ export class Decrypter {
     })
   }
 
-  async decrypt(file: Uint8Array, outputFormat?: "uint8array"): Promise<Uint8Array>
-  async decrypt(file: Uint8Array, outputFormat: "text"): Promise<string>
-  async decrypt(file: Uint8Array, outputFormat?: "text" | "uint8array"): Promise<Uint8Array | string> {
-    const sodium = await loadSodium()
-
+  decrypt(file: Uint8Array, outputFormat?: "uint8array"): Uint8Array
+  decrypt(file: Uint8Array, outputFormat: "text"): string
+  decrypt(file: Uint8Array, outputFormat?: "text" | "uint8array"): Uint8Array | string {
     const h = parseHeader(file)
     const fileKey = this.unwrapFileKey(h.recipients)
     if (fileKey === null) {

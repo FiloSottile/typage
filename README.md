@@ -22,20 +22,22 @@ npm install age-encryption
 ## Usage
 
 ```
-import * as age from "age-encryption"
+import age from "age-encryption"
 
 await (async() => {
-    const identity = await age.generateIdentity()
-    const recipient = await age.identityToRecipient(identity)
+    const { Encrypter, Decrypter, generateIdentity, identityToRecipient } = await age()
+
+    const identity = await generateIdentity()
+    const recipient = await identityToRecipient(identity)
 
     console.log(identity)
     console.log(recipient)
 
-    const e = new age.Encrypter()
+    const e = new Encrypter()
     await e.addRecipient(recipient)
     const ciphertext = await e.encrypt("Hello, age!")
 
-    const d = new age.Decrypter()
+    const d = new Decrypter()
     await d.addIdentity(identity)
     const out = await d.decrypt(ciphertext, "text")
 
@@ -43,11 +45,13 @@ await (async() => {
 })()
 
 await (async() => {
-    const e = new age.Encrypter()
+    const { Encrypter, Decrypter } = await age()
+
+    const e = new Encrypter()
     e.setPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-three")
     const ciphertext = await e.encrypt("Hello, age!")
 
-    const d = new age.Decrypter()
+    const d = new Decrypter()
     d.addPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-three")
     const out = await d.decrypt(ciphertext, "text")
 
