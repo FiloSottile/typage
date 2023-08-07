@@ -1,5 +1,4 @@
-import { strict as assert } from 'assert'
-import { describe, it } from 'vitest'
+import { describe, it, assert } from 'vitest'
 import { base64_variants, from_base64, to_string } from "libsodium-wrappers-sumo"
 import age from "../lib/index.js"
 

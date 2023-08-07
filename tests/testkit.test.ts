@@ -1,5 +1,4 @@
-import * as assert from 'assert'
-import { describe, it } from 'vitest'
+import { describe, it, assert } from 'vitest'
 import age from '../lib/index.js'
 import { readFileSync, readdirSync } from 'fs'
 import { crypto_hash_sha256, from_hex, to_hex } from 'libsodium-wrappers-sumo'
