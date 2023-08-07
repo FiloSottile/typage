@@ -1,4 +1,5 @@
 import { strict as assert } from 'assert'
+import { describe, it } from 'vitest'
 import { from_string, to_string } from 'libsodium-wrappers-sumo'
 import { decodeBase64, encodeHeader, encodeHeaderNoMAC, parseHeader } from '../lib/format.js'
 
