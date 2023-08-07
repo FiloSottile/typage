@@ -1,5 +1,5 @@
 module.exports = {
-    ignorePatterns: ['.eslintrc.cjs'],
+    ignorePatterns: ['.eslintrc.cjs', 'dist/'],
     extends: [
         'eslint:recommended',
         'plugin:@typescript-eslint/strict-type-checked',

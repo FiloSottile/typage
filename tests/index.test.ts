@@ -1,6 +1,6 @@
 import { strict as assert } from 'assert'
 import { base64_variants, from_base64, to_string } from "libsodium-wrappers-sumo"
-import age from "."
+import age from "../lib/index.js"
 
 const fromBase64 = (s: string) => from_base64(s, base64_variants.ORIGINAL_NO_PADDING)
 

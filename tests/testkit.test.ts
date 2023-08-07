@@ -1,10 +1,10 @@
 import * as assert from 'assert'
-import age from '.'
+import age from '../lib/index.js'
 import { readFileSync, readdirSync } from 'fs'
 import { crypto_hash_sha256, from_hex, to_hex } from 'libsodium-wrappers-sumo'
-import { encodeHeader, encodeHeaderNoMAC, parseHeader } from './lib/format'
-import { decryptSTREAM, encryptSTREAM } from './lib/stream'
-import { HKDF } from './lib/hkdf'
+import { encodeHeader, encodeHeaderNoMAC, parseHeader } from '../lib/format.js'
+import { decryptSTREAM, encryptSTREAM } from '../lib/stream.js'
+import { HKDF } from '../lib/hkdf.js'
 
 describe('CCTV testkit', function () {
     interface Vector {

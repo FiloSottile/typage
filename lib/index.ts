@@ -1,10 +1,10 @@
 import * as sodium from "libsodium-wrappers-sumo"
 import { from_string, to_string } from "libsodium-wrappers-sumo"
 import { decode as decodeBech32, encode as encodeBech32 } from "bech32-buffer"
-import { scryptUnwrap, scryptWrap, x25519Identity, x25519Unwrap, x25519Wrap } from "./lib/recipients"
-import { encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./lib/format"
-import { decryptSTREAM, encryptSTREAM } from "./lib/stream"
-import { HKDF } from "./lib/hkdf"
+import { scryptUnwrap, scryptWrap, x25519Identity, x25519Unwrap, x25519Wrap } from "./recipients.js"
+import { encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./format.js"
+import { decryptSTREAM, encryptSTREAM } from "./stream.js"
+import { HKDF } from "./hkdf.js"
 
 interface age {
   Encrypter: new () => Encrypter;

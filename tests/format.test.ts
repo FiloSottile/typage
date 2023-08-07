@@ -1,6 +1,6 @@
 import { strict as assert } from 'assert'
 import { from_string, to_string } from 'libsodium-wrappers-sumo'
-import { decodeBase64, encodeHeader, encodeHeaderNoMAC, parseHeader } from './format'
+import { decodeBase64, encodeHeader, encodeHeaderNoMAC, parseHeader } from '../lib/format.js'
 
 const exampleHeader = `age-encryption.org/v1
 -> X25519 abc
