@@ -21,7 +21,7 @@ npm install age-encryption
 
 ## Usage
 
-```
+```ts
 import * as age from "age-encryption"
 
 await (async() => {
