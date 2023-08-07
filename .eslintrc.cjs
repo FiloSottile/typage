@@ -1,5 +1,9 @@
+/** @type {import('eslint').ESLint.ConfigData} */
 module.exports = {
     ignorePatterns: ['.eslintrc.cjs', 'dist/'],
+    env: {
+        'shared-node-browser': true,
+    },
     extends: [
         'eslint:recommended',
         'plugin:@typescript-eslint/strict-type-checked',
