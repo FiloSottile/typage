@@ -24,7 +24,7 @@ npm install age-encryption
 ```ts
 import age from "age-encryption"
 
-await (async() => {
+{
     const { Encrypter, Decrypter, generateIdentity, identityToRecipient } = await age()
 
     const identity = await generateIdentity()
@@ -42,9 +42,9 @@ await (async() => {
     const out = await d.decrypt(ciphertext, "text")
 
     console.log(out)
-})()
+}
 
-await (async() => {
+{
     const { Encrypter, Decrypter } = await age()
 
     const e = new Encrypter()
@@ -56,5 +56,5 @@ await (async() => {
     const out = await d.decrypt(ciphertext, "text")
 
     console.log(out)
-})()
+}
 ```
