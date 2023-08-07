@@ -1,5 +1,4 @@
-import { strict as assert } from 'assert'
-import { describe, it } from 'vitest'
+import { describe, it, assert } from 'vitest'
 import { from_string, to_hex } from 'libsodium-wrappers-sumo'
 import { HKDF } from '../lib/hkdf.js'
 
