@@ -1,6 +1,6 @@
 import { strict as assert } from 'assert'
 import { from_string, to_hex } from 'libsodium-wrappers-sumo'
-import { HKDF } from './hkdf'
+import { HKDF } from '../lib/hkdf.js'
 
 describe('HKDF', () => {
     it('should generate the right value for secret/salt/info', () => {
