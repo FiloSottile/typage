@@ -17,14 +17,13 @@
         "libsodium-wrappers-sumo": "^0.7.11"
     },
     "scripts": {
-        "test": "vitest",
+        "test": "vitest --run",
         "lint": "eslint .",
         "build": "tsc -p tsconfig.build.json",
         "prepublishOnly": "npm run build"
     },
     "devDependencies": {
         "@types/libsodium-wrappers-sumo": "^0.7.5",
-        "@types/mocha": "^8.2.3",
         "@types/node": "^20.4.8",
         "@typescript-eslint/eslint-plugin": "^6.1.0",
         "@typescript-eslint/parser": "^6.1.0",
