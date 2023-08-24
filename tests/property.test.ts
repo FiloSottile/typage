@@ -10,7 +10,7 @@ fc.configureGlobal({
 })
 
 const isEqualUInt8Array = (a: Uint8Array, b: Uint8Array) => {
-  if (a.length !== a.length) {
+  if (a.byteLength !== a.byteLength) {
     return false
   }
 
