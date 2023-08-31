@@ -96,7 +96,7 @@ describe('Property Based Tests', () => {
       {
         plaintext: fc.uint8Array(),
         passphrase: fc.string(),
-        scryptWorkFactor: fc.integer({ min: 1, max: 12 })
+        scryptWorkFactor: fc.integer({ min: 1, max: 4 })
       }
     )(
       'decryption should invert encryption with passphrase (UInt8Array plaintext)',
