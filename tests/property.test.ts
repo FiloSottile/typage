@@ -1,7 +1,6 @@
 import { describe } from 'vitest'
 import { test, fc } from '@fast-check/vitest'
 import age from '../lib/index.js'
-import { to_string } from 'libsodium-wrappers-sumo'
 
 fc.configureGlobal({
   // increasing this value will make fast-check do more random test runs,
@@ -43,7 +42,7 @@ describe('Property Based Tests', () => {
         enc.addRecipient(recipient)
         dec.addIdentity(identity)
 
-        return to_string(dec.decrypt(enc.encrypt(plaintext))) === plaintext
+        return dec.decrypt(enc.encrypt(plaintext), 'text') === plaintext
       }
     )
 
@@ -89,7 +88,7 @@ describe('Property Based Tests', () => {
         enc.setPassphrase(passphrase)
         dec.addPassphrase(passphrase)
 
-        return to_string(dec.decrypt(enc.encrypt(plaintext))) === plaintext
+        return dec.decrypt(enc.encrypt(plaintext), 'text') === plaintext
       }
     )
 
