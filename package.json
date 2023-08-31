@@ -7,6 +7,7 @@
     ],
     "repository": "github:FiloSottile/age.ts",
     "type": "module",
+    "types": "./dist/index.d.ts",
     "keywords": [
         "age",
         "file encryption",
