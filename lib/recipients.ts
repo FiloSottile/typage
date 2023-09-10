@@ -20,10 +20,10 @@ export function x25519Wrap(fileKey: Uint8Array, recipient: Uint8Array): Stanza {
 }
 
 export function x25519Unwrap(s: Stanza, i: x25519Identity): Uint8Array | null {
-    if (s.args.length < 1 || s.args[0] != "X25519") {
+    if (s.args.length < 1 || s.args[0] !== "X25519") {
         return null
     }
-    if (s.args.length != 2) {
+    if (s.args.length !== 2) {
         throw Error("invalid X25519 stanza")
     }
     const share = decodeBase64(s.args[1])
@@ -53,10 +53,10 @@ export function scryptWrap(fileKey: Uint8Array, passphrase: string, logN: number
 }
 
 export function scryptUnwrap(s: Stanza, passphrase: string): Uint8Array | null {
-    if (s.args.length < 1 || s.args[0] != "scrypt") {
+    if (s.args.length < 1 || s.args[0] !== "scrypt") {
         return null
     }
-    if (s.args.length != 3) {
+    if (s.args.length !== 3) {
         throw Error("invalid scrypt stanza")
     }
     if (!/^[1-9][0-9]*$/.test(s.args[2])) {

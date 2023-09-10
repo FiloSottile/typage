@@ -28,7 +28,7 @@ describe('CCTV testkit', function () {
 
     for (const vec of vectors) {
         if (vec.meta.armored) continue
-        if (vec.meta.expect == "success") {
+        if (vec.meta.expect === "success") {
             it(vec.name + " should succeed", async function () {
                 const { Decrypter } = await age()
                 const d = new Decrypter()

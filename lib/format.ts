@@ -64,7 +64,7 @@ function parseNextStanza(header: Uint8Array): [s: Stanza, rest: Uint8Array] {
         throw Error("invalid stanza")
     }
     for (const arg of args) {
-        if (arg.length == 0) {
+        if (arg.length === 0) {
             throw Error("invalid stanza")
         }
     }
@@ -146,7 +146,7 @@ export function encodeHeaderNoMAC(recipients: Stanza[]): Uint8Array {
             if (end > s.body.length) end = s.body.length
             lines.push(encodeBase64(s.body.subarray(i, end)) + "\n")
         }
-        if (s.body.length % 48 == 0) lines.push("\n")
+        if (s.body.length % 48 === 0) lines.push("\n")
     }
 
     lines.push("---")

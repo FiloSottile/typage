@@ -13,7 +13,7 @@ export function decryptSTREAM(key: Uint8Array, ciphertext: Uint8Array): Uint8Arr
     const incNonce = () => {
         for (let i = streamNonce.length - 2; i >= 0; i--) {
             streamNonce[i]++
-            if (streamNonce[i] != 0) break
+            if (streamNonce[i] !== 0) break
         }
     }
 
@@ -34,9 +34,9 @@ export function decryptSTREAM(key: Uint8Array, ciphertext: Uint8Array): Uint8Arr
     streamNonce[11] = 1 // Last chunk flag.
     const chunk = sodium.crypto_aead_chacha20poly1305_ietf_decrypt(null, ciphertext, null, streamNonce, key)
     plaintextSlice.set(chunk)
-    if (chunk.length == 0 && plaintext.length != 0)
+    if (chunk.length === 0 && plaintext.length !== 0)
         throw Error("empty final chunk")
-    if (plaintextSlice.length != chunk.length)
+    if (plaintextSlice.length !== chunk.length)
         throw Error("stream: internal error: didn't fill expected plaintext buffer")
 
     return plaintext
@@ -47,11 +47,11 @@ export function encryptSTREAM(key: Uint8Array, plaintext: Uint8Array): Uint8Arra
     const incNonce = () => {
         for (let i = streamNonce.length - 2; i >= 0; i--) {
             streamNonce[i]++
-            if (streamNonce[i] != 0) break
+            if (streamNonce[i] !== 0) break
         }
     }
 
-    const chunkCount = plaintext.length == 0 ? 1 : Math.ceil(plaintext.length / chunkSize)
+    const chunkCount = plaintext.length === 0 ? 1 : Math.ceil(plaintext.length / chunkSize)
     const overhead = chunkCount * chacha20poly1305Overhead
     const ciphertext = new Uint8Array(plaintext.length + overhead)
 
@@ -68,7 +68,7 @@ export function encryptSTREAM(key: Uint8Array, plaintext: Uint8Array): Uint8Arra
     streamNonce[11] = 1 // Last chunk flag.
     const chunk = sodium.crypto_aead_chacha20poly1305_ietf_encrypt(plaintext, null, null, streamNonce, key)
     ciphertextSlice.set(chunk)
-    if (ciphertextSlice.length != chunk.length)
+    if (ciphertextSlice.length !== chunk.length)
         throw Error("stream: internal error: didn't fill expected ciphertext buffer")
 
     return ciphertext

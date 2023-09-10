@@ -18,5 +18,6 @@ module.exports = {
     root: true,
     rules: {
         semi: ["error", "never"],
+        eqeqeq: "error",
     },
 };

@@ -36,8 +36,8 @@ function generateIdentity(): string {
 function identityToRecipient(identity: string): string {
   const res = decodeBech32(identity)
   if (!identity.startsWith("AGE-SECRET-KEY-1") ||
-    res.prefix.toUpperCase() != "AGE-SECRET-KEY-" || res.encoding != "bech32" ||
-    res.data.length != sodium.crypto_scalarmult_curve25519_SCALARBYTES)
+    res.prefix.toUpperCase() !== "AGE-SECRET-KEY-" || res.encoding !== "bech32" ||
+    res.data.length !== sodium.crypto_scalarmult_curve25519_SCALARBYTES)
     throw Error("invalid identity")
 
   const recipient = sodium.crypto_scalarmult_base(res.data)
@@ -52,7 +52,7 @@ class Encrypter {
   setPassphrase(s: string): void {
     if (this.passphrase !== null)
       throw new Error("can encrypt to at most one passphrase")
-    if (this.recipients.length != 0)
+    if (this.recipients.length !== 0)
       throw new Error("can't encrypt to both recipients and passphrases")
     this.passphrase = s
   }
@@ -66,8 +66,8 @@ class Encrypter {
       throw new Error("can't encrypt to both recipients and passphrases")
     const res = decodeBech32(s)
     if (!s.startsWith("age1") ||
-      res.prefix.toLowerCase() != "age" || res.encoding != "bech32" ||
-      res.data.length != sodium.crypto_scalarmult_curve25519_BYTES)
+      res.prefix.toLowerCase() !== "age" || res.encoding !== "bech32" ||
+      res.data.length !== sodium.crypto_scalarmult_curve25519_BYTES)
       throw Error("invalid recipient")
     this.recipients.push(res.data)
   }
@@ -114,8 +114,8 @@ class Decrypter {
   addIdentity(s: string): void {
     const res = decodeBech32(s)
     if (!s.startsWith("AGE-SECRET-KEY-1") ||
-      res.prefix.toUpperCase() != "AGE-SECRET-KEY-" || res.encoding != "bech32" ||
-      res.data.length != sodium.crypto_scalarmult_curve25519_SCALARBYTES)
+      res.prefix.toUpperCase() !== "AGE-SECRET-KEY-" || res.encoding !== "bech32" ||
+      res.data.length !== sodium.crypto_scalarmult_curve25519_SCALARBYTES)
       throw Error("invalid identity")
     this.identities.push({
       identity: res.data,
@@ -151,7 +151,7 @@ class Decrypter {
       // Ideally this should be implemented by passing all stanzas to the scrypt
       // identity implementation, and letting it throw the error. In practice,
       // this is a very simple implementation with no public identity interface.
-      if (s.args.length > 0 && s.args[0] == "scrypt" && recipients.length != 1) {
+      if (s.args.length > 0 && s.args[0] === "scrypt" && recipients.length !== 1) {
         throw Error("scrypt recipient is not the only one in the header")
       }
 
