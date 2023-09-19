@@ -19,7 +19,7 @@ All low-level cryptographic operations are implemented with [libsodium.js](https
 npm install age-encryption
 ```
 
-## Usage
+## Usage (Node)
 
 ```ts
 import age from "age-encryption"
@@ -55,3 +55,13 @@ d.addPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-t
 const out = d.decrypt(ciphertext, "text")
 console.log(out)
 ```
+
+## Usage (Browser)
+
+The library can be bundled with esbuild and used in a browser.  
+To bundle, run the bundle command in the package.json:  
+```
+npm run bundle
+```
+This will generate a bundle.js file under dist.  
+Just include bundle.js and have fun! Please look at examples/browser.html for an example.

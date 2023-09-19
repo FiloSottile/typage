@@ -1,4 +1,4 @@
-import * as sodium from "libsodium-wrappers-sumo"
+import _sodium from "libsodium-wrappers-sumo"
 import { from_string, to_string } from "libsodium-wrappers-sumo"
 import { decode as decodeBech32, encode as encodeBech32 } from "bech32-buffer"
 import { scryptUnwrap, scryptWrap, x25519Identity, x25519Unwrap, x25519Wrap } from "./recipients.js"
@@ -14,6 +14,7 @@ interface age {
 }
 
 let initDone = false
+let sodium = _sodium
 
 export default async function init(): Promise<age> {
   if (!initDone) {

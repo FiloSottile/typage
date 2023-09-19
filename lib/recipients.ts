@@ -1,6 +1,8 @@
-import * as sodium from "libsodium-wrappers-sumo"
+import _sodium from "libsodium-wrappers-sumo"
 import { decodeBase64, encodeBase64, Stanza } from "./format.js"
 import { HKDF } from "./hkdf.js"
+
+const sodium = _sodium
 
 export interface x25519Identity {
     identity: Uint8Array, recipient: Uint8Array,

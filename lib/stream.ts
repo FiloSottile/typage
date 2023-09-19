@@ -1,4 +1,6 @@
-import * as sodium from "libsodium-wrappers-sumo"
+import _sodium from "libsodium-wrappers-sumo"
+
+const sodium = _sodium
 
 // We can't use sodium.crypto_aead_chacha20poly1305_IETF_ABYTES here before
 // sodium.ready, or it will make the constant be silently NaN, and nothing will
