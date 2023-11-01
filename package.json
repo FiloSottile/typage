@@ -22,7 +22,7 @@
         "lint": "eslint .",
         "build": "tsc -p tsconfig.build.json",
         "prepublishOnly": "npm run build",
-        "bundle": "esbuild dist/index.js --bundle --outfile=dist/bundle.js --global-name=ageModule"
+        "bundle": "esbuild lib/index.ts --bundle --minify --tsconfig=tsconfig.build.json --outfile=dist/bundle.js --global-name=ageModule"
     },
     "devDependencies": {
         "@fast-check/vitest": "^0.0.6",
