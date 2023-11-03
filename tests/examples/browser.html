@@ -16,5 +16,7 @@
         d.addIdentity(identity)
         const out = d.decrypt(ciphertext, "text")
         console.log(out)
+
+        globalThis.testDone = true
     })
 </script>

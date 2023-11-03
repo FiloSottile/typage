@@ -4,7 +4,15 @@
     "workspaces": [
         "../.."
     ],
+    "scripts": {
+        "test:node": "node identity.js && node passphrase.js",
+        "test:bun": "bun install && bun run identity.js && bun run passphrase.js",
+        "build:esbuild": "esbuild --target=es6 --bundle --minify --outfile=age.js esbuild.js",
+        "test:esbuild": "npm run build:esbuild && node browser.js"
+    },
     "devDependencies": {
-        "esbuild": "0.19.4"
+        "esbuild": "0.19.4",
+        "express": "4.18.2",
+        "puppeteer": "21.5.0"
     }
 }
