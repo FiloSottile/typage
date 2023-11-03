@@ -1,3 +1,4 @@
 /node_modules
 /package-lock.json
 /bun.lockb
+/age.js

@@ -19,8 +19,9 @@
     },
     "scripts": {
         "test": "vitest --run",
-        "examples": "cd tests/examples && npm install && node identity.js && node passphrase.js",
+        "examples:node": "cd tests/examples && npm install && node identity.js && node passphrase.js",
         "examples:bun": "cd tests/examples && bun install && bun run identity.js && bun run passphrase.js",
+        "examples:esbuild": "cd tests/examples && npm install && esbuild --target=es6 --bundle --minify --outfile=age.js esbuild.js",
         "lint": "eslint .",
         "build": "tsc -p tsconfig.build.json",
         "prepublishOnly": "npm run build"

@@ -3,5 +3,8 @@
     "type": "module",
     "workspaces": [
         "../.."
-    ]
+    ],
+    "devDependencies": {
+        "esbuild": "0.19.4"
+    }
 }
