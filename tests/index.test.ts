@@ -1,6 +1,8 @@
 import { describe, it, assert } from 'vitest'
-import { base64_variants, from_base64, to_string } from "libsodium-wrappers-sumo"
 import age from "../lib/index.js"
+import sodium from 'libsodium-wrappers-sumo'
+const { base64_variants, from_base64, to_string } = sodium
+await sodium.ready
 
 const fromBase64 = (s: string) => from_base64(s, base64_variants.ORIGINAL_NO_PADDING)
 

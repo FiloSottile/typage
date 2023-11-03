@@ -1,10 +1,12 @@
 import { describe, it, assert } from 'vitest'
-import age from '../lib/index.js'
 import { readFileSync, readdirSync } from 'fs'
-import { crypto_hash_sha256, from_hex, to_hex } from 'libsodium-wrappers-sumo'
 import { encodeHeader, encodeHeaderNoMAC, parseHeader } from '../lib/format.js'
 import { decryptSTREAM, encryptSTREAM } from '../lib/stream.js'
 import { HKDF } from '../lib/hkdf.js'
+import age from '../lib/index.js'
+import sodium from 'libsodium-wrappers-sumo'
+const { crypto_hash_sha256, from_hex, to_hex } = sodium
+await sodium.ready
 
 describe('CCTV testkit', function () {
     interface Vector {

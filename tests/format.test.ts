@@ -1,7 +1,9 @@
 import { strict as assert } from 'assert'
 import { describe, it } from 'vitest'
-import { from_string, to_string } from 'libsodium-wrappers-sumo'
 import { decodeBase64, encodeHeader, encodeHeaderNoMAC, parseHeader } from '../lib/format.js'
+import sodium from 'libsodium-wrappers-sumo'
+const { from_string, to_string } = sodium
+await sodium.ready
 
 const exampleHeader = `age-encryption.org/v1
 -> X25519 abc
