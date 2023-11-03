@@ -28,30 +28,34 @@ import age from "age-encryption"
 
 const { Encrypter, Decrypter, generateIdentity, identityToRecipient } = await age()
 
-// Encrypt and decrypt a file with a new recipient / identity pair.
+{
+    // Encrypt and decrypt a file with a new recipient / identity pair.
 
-const identity = generateIdentity()
-const recipient = identityToRecipient(identity)
-console.log(identity)
-console.log(recipient)
+    const identity = generateIdentity()
+    const recipient = identityToRecipient(identity)
+    console.log(identity)
+    console.log(recipient)
 
-const e = new Encrypter()
-e.addRecipient(recipient)
-const ciphertext = e.encrypt("Hello, age!")
+    const e = new Encrypter()
+    e.addRecipient(recipient)
+    const ciphertext = e.encrypt("Hello, age!")
 
-const d = new Decrypter()
-d.addIdentity(identity)
-const out = d.decrypt(ciphertext, "text")
-console.log(out)
+    const d = new Decrypter()
+    d.addIdentity(identity)
+    const out = d.decrypt(ciphertext, "text")
+    console.log(out)
+}
 
-// Encrypt and decrypt a file with a passphrase.
+{
+    // Encrypt and decrypt a file with a passphrase.
 
-const e = new Encrypter()
-e.setPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-three")
-const ciphertext = e.encrypt("Hello, age!")
+    const e = new Encrypter()
+    e.setPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-three")
+    const ciphertext = e.encrypt("Hello, age!")
 
-const d = new Decrypter()
-d.addPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-three")
-const out = d.decrypt(ciphertext, "text")
-console.log(out)
+    const d = new Decrypter()
+    d.addPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-three")
+    const out = d.decrypt(ciphertext, "text")
+    console.log(out)
+}
 ```
