@@ -21,14 +21,13 @@ npm install age-encryption
 
 ## Usage
 
+Encrypt and decrypt a file with a new recipient / identity pair.
+
 ```ts
 import age from "age-encryption"
 
-// Initialize the library (calls sodium.ready).
-
+// Initialize the age library (calls sodium.ready).
 const { Encrypter, Decrypter, generateIdentity, identityToRecipient } = await age()
-
-// Encrypt and decrypt a file with a new recipient / identity pair.
 
 const identity = generateIdentity()
 const recipient = identityToRecipient(identity)
@@ -43,8 +42,15 @@ const d = new Decrypter()
 d.addIdentity(identity)
 const out = d.decrypt(ciphertext, "text")
 console.log(out)
+```
 
-// Encrypt and decrypt a file with a passphrase.
+Encrypt and decrypt a file with a passphrase.
+
+```ts
+import age from "age-encryption"
+
+// Initialize the age library (calls sodium.ready).
+const { Encrypter, Decrypter } = await age()
 
 const e = new Encrypter()
 e.setPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-three")
