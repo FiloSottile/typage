@@ -1,6 +1,6 @@
 /** @type {import('eslint').ESLint.ConfigData} */
 module.exports = {
-    ignorePatterns: ['.eslintrc.cjs', 'dist/'],
+    ignorePatterns: ['.eslintrc.cjs', 'dist/', 'tests/examples/'],
     env: {
         'shared-node-browser': true,
     },
