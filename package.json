@@ -1,11 +1,14 @@
 {
     "name": "age-encryption",
-    "version": "0.0.4",
+    "version": "0.1.5",
     "main": "dist/index.js",
     "files": [
         "dist/"
     ],
-    "repository": "github:FiloSottile/age.ts",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/FiloSottile/age.ts.git"
+    },
     "type": "module",
     "types": "./dist/index.d.ts",
     "keywords": [

@@ -11,8 +11,6 @@
 
 All low-level cryptographic operations are implemented with [libsodium.js](https://github.com/jedisct1/libsodium.js).
 
-⚠️ This project is experimental. The author has near-zero JavaScript experience and help is very welcome. ⚠️
-
 ## Installation
 
 ```sh
