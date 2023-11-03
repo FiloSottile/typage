@@ -5,7 +5,7 @@ import { decryptSTREAM, encryptSTREAM } from '../lib/stream.js'
 import { HKDF } from '../lib/hkdf.js'
 import age from '../lib/index.js'
 import sodium from 'libsodium-wrappers-sumo'
-const { crypto_hash_sha256, from_hex, to_hex } = sodium
+const { from_hex, to_hex } = sodium
 await sodium.ready
 
 describe('CCTV testkit', function () {
@@ -39,7 +39,7 @@ describe('CCTV testkit', function () {
                 if (vec.meta.identity)
                     d.addIdentity(vec.meta.identity)
                 const plaintext = d.decrypt(vec.body)
-                assert.equal(to_hex(crypto_hash_sha256(plaintext)), vec.meta.payload)
+                assert.equal(to_hex(sodium.crypto_hash_sha256(plaintext)), vec.meta.payload)
             })
             it(vec.name + " should round-trip header encoding", function () {
                 const h = parseHeader(vec.body)
