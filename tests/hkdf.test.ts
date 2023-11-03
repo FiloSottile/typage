@@ -1,6 +1,8 @@
 import { describe, it, assert } from 'vitest'
-import { from_string, to_hex } from 'libsodium-wrappers-sumo'
 import { HKDF } from '../lib/hkdf.js'
+import sodium from 'libsodium-wrappers-sumo'
+const { from_string, to_hex } = sodium
+await sodium.ready
 
 describe('HKDF', () => {
     it('should generate the right value for secret/salt/info', () => {
