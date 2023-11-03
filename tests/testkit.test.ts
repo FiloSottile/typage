@@ -1,10 +1,12 @@
 import { describe, it, assert } from 'vitest'
 import age from '../lib/index.js'
 import { readFileSync, readdirSync } from 'fs'
-import { crypto_hash_sha256, from_hex, to_hex } from 'libsodium-wrappers-sumo'
+import { sodium } from '../lib/sodium.js'
 import { encodeHeader, encodeHeaderNoMAC, parseHeader } from '../lib/format.js'
 import { decryptSTREAM, encryptSTREAM } from '../lib/stream.js'
 import { HKDF } from '../lib/hkdf.js'
+
+await sodium.ready
 
 describe('CCTV testkit', function () {
     interface Vector {
@@ -37,7 +39,7 @@ describe('CCTV testkit', function () {
                 if (vec.meta.identity)
                     d.addIdentity(vec.meta.identity)
                 const plaintext = d.decrypt(vec.body)
-                assert.equal(to_hex(crypto_hash_sha256(plaintext)), vec.meta.payload)
+                assert.equal(sodium.to_hex(sodium.crypto_hash_sha256(plaintext)), vec.meta.payload)
             })
             it(vec.name + " should round-trip header encoding", function () {
                 const h = parseHeader(vec.body)
@@ -51,7 +53,7 @@ describe('CCTV testkit', function () {
             it(vec.name + " should round-trip STREAM encryption", function () {
                 const h = parseHeader(vec.body)
                 const nonce = h.rest.subarray(0, 16)
-                const streamKey = HKDF(from_hex(vec.meta["file key"]), nonce, "payload")
+                const streamKey = HKDF(sodium.from_hex(vec.meta["file key"]), nonce, "payload")
                 const payload = h.rest.subarray(16)
                 const plaintext = decryptSTREAM(streamKey, payload)
                 assert.deepEqual(encryptSTREAM(streamKey, plaintext), payload)

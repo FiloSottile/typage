@@ -1,8 +1,10 @@
 import { describe, it, assert } from 'vitest'
-import { base64_variants, from_base64, to_string } from "libsodium-wrappers-sumo"
+import { sodium } from '../lib/sodium.js'
 import age from "../lib/index.js"
 
-const fromBase64 = (s: string) => from_base64(s, base64_variants.ORIGINAL_NO_PADDING)
+await sodium.ready
+
+const fromBase64 = (s: string) => sodium.from_base64(s, sodium.base64_variants.ORIGINAL_NO_PADDING)
 
 describe('AgeDecrypter', function () {
     it('should decrypt a file with the right passphrase', async function () {
@@ -51,7 +53,7 @@ describe('AgeEncrypter', function () {
         d.addPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
         const out = d.decrypt(file)
 
-        assert.deepEqual(to_string(out), "age")
+        assert.deepEqual(sodium.to_string(out), "age")
     })
     it('should encrypt (and decrypt) a file with a recipient', async function () {
         const { Decrypter, Encrypter } = await age()
@@ -63,7 +65,7 @@ describe('AgeEncrypter', function () {
         d.addIdentity("AGE-SECRET-KEY-1RKH0DGHQ0FU6VLXX2VW6Y3W2TKK7KR4J36N9SNDXK75JHCJ3N6JQNZJF5J")
         const out = d.decrypt(file)
 
-        assert.deepEqual(to_string(out), "age")
+        assert.deepEqual(sodium.to_string(out), "age")
     })
     it('should encrypt (and decrypt) a file with multiple recipients', async function () {
         const { Decrypter, Encrypter } = await age()
@@ -76,7 +78,7 @@ describe('AgeEncrypter', function () {
         d.addIdentity("AGE-SECRET-KEY-1RKH0DGHQ0FU6VLXX2VW6Y3W2TKK7KR4J36N9SNDXK75JHCJ3N6JQNZJF5J")
         const out = d.decrypt(file)
 
-        assert.deepEqual(to_string(out), "age")
+        assert.deepEqual(sodium.to_string(out), "age")
     })
     it('should throw when using multiple passphrases', async function () {
         const { Encrypter } = await age()

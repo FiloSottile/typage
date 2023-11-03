@@ -1,7 +1,9 @@
 import { strict as assert } from 'assert'
 import { describe, it } from 'vitest'
-import { from_string, to_string } from 'libsodium-wrappers-sumo'
+import { sodium } from '../lib/sodium.js'
 import { decodeBase64, encodeHeader, encodeHeaderNoMAC, parseHeader } from '../lib/format.js'
+
+await sodium.ready
 
 const exampleHeader = `age-encryption.org/v1
 -> X25519 abc
@@ -11,27 +13,27 @@ this is the payload`
 
 describe('parseHeader', () => {
     it('should parse a well formatted header', () => {
-        const h = parseHeader(from_string(exampleHeader))
+        const h = parseHeader(sodium.from_string(exampleHeader))
         assert.equal(h.recipients.length, 1)
         assert.deepEqual(h.recipients[0].args, ["X25519", "abc"])
         assert.deepEqual(h.recipients[0].body, decodeBase64("0OrTkKHpE7klNLd0k+9Uam5hkQkzMxaqKcIPRIO1sNE"))
         assert.deepEqual(h.MAC, decodeBase64("gxhoSa5BciRDt8lOpYNcx4EYtKpS0CJ06F3ZwN82VaM"))
-        assert.deepEqual(h.rest, from_string("this is the payload"))
+        assert.deepEqual(h.rest, sodium.from_string("this is the payload"))
     })
     it('should reencode to the original header', () => {
-        const h = parseHeader(from_string(exampleHeader))
+        const h = parseHeader(sodium.from_string(exampleHeader))
         assert.deepEqual(encodeHeaderNoMAC(h.recipients), h.headerNoMAC)
-        const got = to_string(encodeHeader(h.recipients, h.MAC)) + to_string(h.rest)
+        const got = sodium.to_string(encodeHeader(h.recipients, h.MAC)) + sodium.to_string(h.rest)
         assert.deepEqual(got, exampleHeader)
     })
 })
 
 describe('decodeBase64', () => {
     it('should parse a valid base64 string', () => {
-        assert.deepEqual(decodeBase64("dGVzdA"), from_string("test"))
+        assert.deepEqual(decodeBase64("dGVzdA"), sodium.from_string("test"))
     })
     it('should parse a valid base64 string with spare bits', () => {
-        assert.deepEqual(decodeBase64("dGVzdDI"), from_string("test2"))
+        assert.deepEqual(decodeBase64("dGVzdDI"), sodium.from_string("test2"))
     })
     it('should reject a non-canonical base64 string', () => {
         assert.throws(() => { decodeBase64("dGVzdDJ") })
