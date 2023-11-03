@@ -25,5 +25,6 @@ jobs:
       - run: npm run build
       - run: npm run lint
       - run: npm run test
-      - run: npm run examples
+      - run: npm run examples:node
       - run: npm run examples:bun
+      - run: npm run examples:esbuild

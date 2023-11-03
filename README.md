@@ -15,13 +15,17 @@ All low-level cryptographic operations are implemented with [libsodium.js](https
 
 ## Installation
 
-```
+```sh
 npm install age-encryption
 ```
 
 ## Usage
 
-Encrypt and decrypt a file with a new recipient / identity pair.
+`age-encryption` is a modern ES Module, compatible with Node.js and Bun, with built-in types.
+
+There is a single exported function, `age()`, which returns a Promise that resolves to an object that provides the package API. This is necessary to ensure that applications always call `sodium.ready()` from libsodium.js.
+
+#### Encrypt and decrypt a file with a new recipient / identity pair
 
 ```ts
 import age from "age-encryption"
@@ -44,7 +48,7 @@ const out = d.decrypt(ciphertext, "text")
 console.log(out)
 ```
 
-Encrypt and decrypt a file with a passphrase.
+#### Encrypt and decrypt a file with a passphrase
 
 ```ts
 import age from "age-encryption"
@@ -61,3 +65,40 @@ d.addPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-t
 const out = d.decrypt(ciphertext, "text")
 console.log(out)
 ```
+
+### Browser usage
+
+`age-encryption` is compatible with modern bundlers such as [esbuild](https://esbuild.github.io/).
+
+To produce a classic library file that sets `age()` as a global variable, you can run
+
+```sh
+cd "$(mktemp)" && npm init -y && npm install esbuild age-encryption
+echo 'import age from "age-encryption"; globalThis.age = age' | \
+  npx esbuild --target=es6 --bundle --minify --outfile=age.js
+```
+
+Then, you can use it like this
+
+```html
+<script src="age.js"></script>
+<script>
+    age().then((age) => {
+        const identity = age.generateIdentity()
+        const recipient = age.identityToRecipient(identity)
+        console.log(identity)
+        console.log(recipient)
+
+        const e = new age.Encrypter()
+        e.addRecipient(recipient)
+        const ciphertext = e.encrypt("Hello, age!")
+
+        const d = new age.Decrypter()
+        d.addIdentity(identity)
+        const out = d.decrypt(ciphertext, "text")
+        console.log(out)
+    })
+</script>
+```
+
+(Or, in a `script` with `type="module"`, you can use the top-level `await` syntax like in the examples above.)
