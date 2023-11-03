@@ -19,6 +19,7 @@
     },
     "scripts": {
         "test": "vitest --run",
+        "examples": "cd tests/examples && npm install && node identity.js && node passphrase.js",
         "lint": "eslint .",
         "build": "tsc -p tsconfig.build.json",
         "prepublishOnly": "npm run build"
