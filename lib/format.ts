@@ -1,7 +1,7 @@
-import { base64_variants, from_base64, from_string, to_base64, to_string } from "libsodium-wrappers-sumo"
+import { sodium } from "./sodium.js";
 
-export const decodeBase64 = (s: string) => from_base64(s, base64_variants.ORIGINAL_NO_PADDING)
-export const encodeBase64 = (s: Uint8Array) => to_base64(s, base64_variants.ORIGINAL_NO_PADDING)
+export const decodeBase64 = (s: string) => sodium.from_base64(s, sodium.base64_variants.ORIGINAL_NO_PADDING)
+export const encodeBase64 = (s: Uint8Array) => sodium.to_base64(s, sodium.base64_variants.ORIGINAL_NO_PADDING)
 
 export class Stanza {
     readonly args: string[]
@@ -25,7 +25,7 @@ class ByteReader {
                 throw Error("invalid non-ASCII byte in header")
             }
         })
-        return to_string(bytes)
+        return sodium.to_string(bytes)
     }
 
     readString(n: number): string {
@@ -150,12 +150,12 @@ export function encodeHeaderNoMAC(recipients: Stanza[]): Uint8Array {
     }
 
     lines.push("---")
-    return from_string(lines.join(""))
+    return sodium.from_string(lines.join(""))
 }
 
 export function encodeHeader(recipients: Stanza[], MAC: Uint8Array): Uint8Array {
     return flattenArray([
         encodeHeaderNoMAC(recipients),
-        from_string(" " + encodeBase64(MAC) + "\n")
+        sodium.from_string(" " + encodeBase64(MAC) + "\n")
     ])
 }

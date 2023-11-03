@@ -1,5 +1,4 @@
-import * as sodium from "libsodium-wrappers-sumo"
-import { from_string } from "libsodium-wrappers-sumo"
+import { sodium } from "./sodium.js";
 
 // @types/libsodium-wrappers-sumo is missing these definitions.
 declare module "libsodium-wrappers-sumo" {
@@ -17,7 +16,7 @@ export function HKDF(ikm: Uint8Array, salt: Uint8Array | null, info: string): Ui
     const prk = sodium.crypto_auth_hmacsha256_final(h)
 
     const infoAndCounter = new Uint8Array(info.length + 1)
-    infoAndCounter.set(from_string(info))
+    infoAndCounter.set(sodium.from_string(info))
     infoAndCounter[info.length] = 1
 
     return sodium.crypto_auth_hmacsha256(infoAndCounter, prk)

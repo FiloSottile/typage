@@ -1,4 +1,4 @@
-import * as sodium from "libsodium-wrappers-sumo"
+import { sodium } from "./sodium.js";
 import { decodeBase64, encodeBase64, Stanza } from "./format.js"
 import { HKDF } from "./hkdf.js"
 

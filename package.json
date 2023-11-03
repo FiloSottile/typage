@@ -19,9 +19,11 @@
     },
     "scripts": {
         "test": "vitest --run",
+        "examples": "bun run tests/readme-examples/passphrase.ts && bun run tests/readme-examples/recipient.ts",
         "lint": "eslint .",
         "build": "tsc -p tsconfig.build.json",
-        "prepublishOnly": "npm run build"
+        "prepublishOnly": "npm run build",
+        "clean": "rm -rf ./dist"
     },
     "devDependencies": {
         "@fast-check/vitest": "^0.0.6",

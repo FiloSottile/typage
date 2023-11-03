@@ -1,5 +1,4 @@
-import * as sodium from "libsodium-wrappers-sumo"
-import { from_string, to_string } from "libsodium-wrappers-sumo"
+import { sodium } from "./sodium.js";
 import { decode as decodeBech32, encode as encodeBech32 } from "bech32-buffer"
 import { scryptUnwrap, scryptWrap, x25519Identity, x25519Unwrap, x25519Wrap } from "./recipients.js"
 import { encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./format.js"
@@ -74,7 +73,7 @@ class Encrypter {
 
   encrypt(file: Uint8Array | string): Uint8Array {
     if (typeof file === "string") {
-      file = from_string(file)
+      file = sodium.from_string(file)
     }
 
     const fileKey = sodium.randombytes_buf(16)
@@ -142,7 +141,7 @@ class Decrypter {
     const payload = h.rest.subarray(16)
 
     const out = decryptSTREAM(streamKey, payload)
-    if (outputFormat === "text") return to_string(out)
+    if (outputFormat === "text") return sodium.to_string(out)
     return out
   }
 
