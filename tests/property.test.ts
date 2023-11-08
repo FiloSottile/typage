@@ -1,6 +1,6 @@
-import { describe } from 'vitest'
-import { test, fc } from '@fast-check/vitest'
-import age from '../lib/index.js'
+import { describe } from "vitest"
+import { test, fc } from "@fast-check/vitest"
+import age from "../lib/index.js"
 
 fc.configureGlobal({
   // increasing this value will make fast-check do more random test runs,
@@ -9,7 +9,7 @@ fc.configureGlobal({
 })
 
 const isEqualUInt8Array = (a: Uint8Array, b: Uint8Array) => {
-  if (a.byteLength !== a.byteLength) {
+  if (a.byteLength !== b.byteLength) {
     return false
   }
 
@@ -22,14 +22,14 @@ const isEqualUInt8Array = (a: Uint8Array, b: Uint8Array) => {
   return true
 }
 
-describe('Property Based Tests', () => {
-  describe('Asymmetric Encryption and Decryption', () => {
+describe("Property Based Tests", () => {
+  describe("Asymmetric Encryption and Decryption", () => {
     test.prop(
       {
         plaintext: fc.string()
       }
     )(
-      'decryption should invert encryption with identity/recipient (string plaintext)',
+      "decryption should invert encryption with identity/recipient (string plaintext)",
       async ({ plaintext }) => {
         const { Decrypter, Encrypter, generateIdentity, identityToRecipient } = await age()
 
@@ -42,7 +42,7 @@ describe('Property Based Tests', () => {
         enc.addRecipient(recipient)
         dec.addIdentity(identity)
 
-        return dec.decrypt(enc.encrypt(plaintext), 'text') === plaintext
+        return dec.decrypt(enc.encrypt(plaintext), "text") === plaintext
       }
     )
 
@@ -51,7 +51,7 @@ describe('Property Based Tests', () => {
         plaintext: fc.uint8Array()
       }
     )(
-      'decryption should invert encryption with identity/recipient (uint8array plaintext)',
+      "decryption should invert encryption with identity/recipient (uint8array plaintext)",
       async ({ plaintext }) => {
         const { Decrypter, Encrypter, generateIdentity, identityToRecipient } = await age()
 
@@ -70,7 +70,7 @@ describe('Property Based Tests', () => {
   })
 
 
-  describe('Symmetric Encryption and Decryption', () => {
+  describe("Symmetric Encryption and Decryption", () => {
     test.prop(
       {
         plaintext: fc.string(),
@@ -78,7 +78,7 @@ describe('Property Based Tests', () => {
         scryptWorkFactor: fc.integer({ min: 1, max: 4 })
       }
     )(
-      'decryption should invert encryption with passphrase (string plaintext)',
+      "decryption should invert encryption with passphrase (string plaintext)",
       async ({ plaintext, passphrase, scryptWorkFactor }) => {
         const { Decrypter, Encrypter } = await age()
         const enc = new Encrypter()
@@ -88,7 +88,7 @@ describe('Property Based Tests', () => {
         enc.setPassphrase(passphrase)
         dec.addPassphrase(passphrase)
 
-        return dec.decrypt(enc.encrypt(plaintext), 'text') === plaintext
+        return dec.decrypt(enc.encrypt(plaintext), "text") === plaintext
       }
     )
 
@@ -99,7 +99,7 @@ describe('Property Based Tests', () => {
         scryptWorkFactor: fc.integer({ min: 1, max: 4 })
       }
     )(
-      'decryption should invert encryption with passphrase (UInt8Array plaintext)',
+      "decryption should invert encryption with passphrase (UInt8Array plaintext)",
       async ({ plaintext, passphrase, scryptWorkFactor }) => {
         const { Decrypter, Encrypter } = await age()
         const enc = new Encrypter()

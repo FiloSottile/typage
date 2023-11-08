@@ -1,20 +1,20 @@
-import { describe, it, assert } from 'vitest'
+import { describe, it, assert } from "vitest"
 import age from "../lib/index.js"
-import sodium from 'libsodium-wrappers-sumo'
+import sodium from "libsodium-wrappers-sumo"
 const { base64_variants, from_base64, to_string } = sodium
 await sodium.ready
 
 const fromBase64 = (s: string) => from_base64(s, base64_variants.ORIGINAL_NO_PADDING)
 
-describe('AgeDecrypter', function () {
-    it('should decrypt a file with the right passphrase', async function () {
+describe("AgeDecrypter", function () {
+    it("should decrypt a file with the right passphrase", async function () {
         const { Decrypter } = await age()
         const d = new Decrypter()
         d.addPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
         const file = fromBase64("YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IHNjcnlwdCB4Y2lkcXJQdmwwZzRROEZ5eXU4dHNnIDgKNnM2Ylp2Vlg2b0NBSVp2QkxCZEhJbEJrYUcreWRIZHVHWVpBaUJkUy9ZMAotLS0gZ280TkNGT05VTDEwZW5WRjVPMnkxem05eWQwdkM0S09hSU1nV05aYW5QSQom4WH7RYXsjlDm3HNKCe9gY2IfCjTY/2t6PF4bzUkeWZWkE7kd")
         assert.equal(d.decrypt(file, "text"), "test\n")
     })
-    it('should decrypt a file with the right identity', async function () {
+    it("should decrypt a file with the right identity", async function () {
         const { Decrypter } = await age()
         const d = new Decrypter()
         d.addIdentity("AGE-SECRET-KEY-1L27NYJDYRNDSCCELNZE8C6JTSH22TLQJVPGD7289KDLMZA5HWN6SZPEHGF")
@@ -23,8 +23,8 @@ describe('AgeDecrypter', function () {
     })
 })
 
-describe('key generation', function () {
-    it('should encrypt and decrypt a file', async function () {
+describe("key generation", function () {
+    it("should encrypt and decrypt a file", async function () {
         const { Decrypter, Encrypter, generateIdentity, identityToRecipient } = await age()
         const identity = generateIdentity()
         const recipient = identityToRecipient(identity)
@@ -41,8 +41,8 @@ describe('key generation', function () {
     })
 })
 
-describe('AgeEncrypter', function () {
-    it('should encrypt (and decrypt) a file with a passphrase', async function () {
+describe("AgeEncrypter", function () {
+    it("should encrypt (and decrypt) a file with a passphrase", async function () {
         const { Decrypter, Encrypter } = await age()
         const e = new Encrypter()
         e.setScryptWorkFactor(12)
@@ -55,7 +55,7 @@ describe('AgeEncrypter', function () {
 
         assert.deepEqual(to_string(out), "age")
     })
-    it('should encrypt (and decrypt) a file with a recipient', async function () {
+    it("should encrypt (and decrypt) a file with a recipient", async function () {
         const { Decrypter, Encrypter } = await age()
         const e = new Encrypter()
         e.addRecipient("age1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl6")
@@ -67,7 +67,7 @@ describe('AgeEncrypter', function () {
 
         assert.deepEqual(to_string(out), "age")
     })
-    it('should encrypt (and decrypt) a file with multiple recipients', async function () {
+    it("should encrypt (and decrypt) a file with multiple recipients", async function () {
         const { Decrypter, Encrypter } = await age()
         const e = new Encrypter()
         e.addRecipient("age12wv74vxhhp9kg29j2wzm50c9p4urn7py0t4tzdgz6m0pcqjzmu9qqpzjqn")
@@ -80,7 +80,7 @@ describe('AgeEncrypter', function () {
 
         assert.deepEqual(to_string(out), "age")
     })
-    it('should throw when using multiple passphrases', async function () {
+    it("should throw when using multiple passphrases", async function () {
         const { Encrypter } = await age()
         const e = new Encrypter()
         e.setPassphrase("1")
@@ -88,7 +88,7 @@ describe('AgeEncrypter', function () {
             e.setPassphrase("2")
         })
     })
-    it('should throw when using passphrases and recipients', async function () {
+    it("should throw when using passphrases and recipients", async function () {
         const { Encrypter } = await age()
         const e = new Encrypter()
         e.setPassphrase("1")
@@ -96,7 +96,7 @@ describe('AgeEncrypter', function () {
             e.addRecipient("age1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl6")
         })
     })
-    it('should throw when using recipients and passphrases', async function () {
+    it("should throw when using recipients and passphrases", async function () {
         const { Encrypter } = await age()
         const e = new Encrypter()
         e.addRecipient("age1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl6")
@@ -104,7 +104,7 @@ describe('AgeEncrypter', function () {
             e.setPassphrase("2")
         })
     })
-    it('should throw when using bad recipients', async function () {
+    it("should throw when using bad recipients", async function () {
         const { Encrypter } = await age()
         const e = new Encrypter()
         assert.throws(() => {

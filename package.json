@@ -31,6 +31,7 @@
     },
     "devDependencies": {
         "@fast-check/vitest": "^0.0.6",
+        "@stylistic/eslint-plugin": "^1.0.1",
         "@types/libsodium-wrappers-sumo": "^0.7.5",
         "@types/node": "^20.4.8",
         "@typescript-eslint/eslint-plugin": "^6.1.0",

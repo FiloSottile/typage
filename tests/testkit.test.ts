@@ -1,22 +1,22 @@
-import { describe, it, assert } from 'vitest'
-import { readFileSync, readdirSync } from 'fs'
-import { encodeHeader, encodeHeaderNoMAC, parseHeader } from '../lib/format.js'
-import { decryptSTREAM, encryptSTREAM } from '../lib/stream.js'
-import { HKDF } from '../lib/hkdf.js'
-import age from '../lib/index.js'
-import sodium from 'libsodium-wrappers-sumo'
+import { describe, it, assert } from "vitest"
+import { readFileSync, readdirSync } from "fs"
+import { encodeHeader, encodeHeaderNoMAC, parseHeader } from "../lib/format.js"
+import { decryptSTREAM, encryptSTREAM } from "../lib/stream.js"
+import { HKDF } from "../lib/hkdf.js"
+import age from "../lib/index.js"
+import sodium from "libsodium-wrappers-sumo"
 const { from_hex, to_hex } = sodium
 await sodium.ready
 
-describe('CCTV testkit', function () {
+describe("CCTV testkit", function () {
     interface Vector {
         name: string,
         meta: Record<string, string>,
         body: Uint8Array,
     }
     const vectors: Vector[] = []
-    for (const name of readdirSync('./tests/testkit')) {
-        const contents = readFileSync('./tests/testkit/' + name)
+    for (const name of readdirSync("./tests/testkit")) {
+        const contents = readFileSync("./tests/testkit/" + name)
         const sepIdx = contents.indexOf("\n\n")
         const header = contents.subarray(0, sepIdx).toString()
         const body = contents.subarray(sepIdx + 2)

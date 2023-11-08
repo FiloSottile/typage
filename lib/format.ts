@@ -36,7 +36,7 @@ class ByteReader {
     }
 
     readLine(): string | null {
-        const i = this.arr.indexOf('\n'.charCodeAt(0))
+        const i = this.arr.indexOf("\n".charCodeAt(0))
         if (i >= 0) {
             const out = this.arr.subarray(0, i)
             this.arr = this.arr.subarray(i + 1)

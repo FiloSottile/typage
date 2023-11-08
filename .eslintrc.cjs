@@ -9,7 +9,7 @@ module.exports = {
         'plugin:@typescript-eslint/strict-type-checked',
         'plugin:@typescript-eslint/stylistic-type-checked',
     ],
-    plugins: ['@typescript-eslint'],
+    plugins: ['@typescript-eslint', '@stylistic'],
     parser: '@typescript-eslint/parser',
     parserOptions: {
         project: true,
@@ -17,7 +17,14 @@ module.exports = {
     },
     root: true,
     rules: {
-        semi: ["error", "never"],
-        eqeqeq: "error",
+        '@stylistic/semi': ["error", "never"],
+        '@stylistic/quotes': ["error", "double"],
+
+        'eqeqeq': "error",
+        'no-var': "error",
+        'prefer-const': "error",
+
+        'no-constant-binary-expression': "error",
+        'no-self-compare': "error",
     },
 };

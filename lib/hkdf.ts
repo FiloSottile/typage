@@ -2,9 +2,9 @@ import sodium from "libsodium-wrappers-sumo"
 
 // @types/libsodium-wrappers-sumo is missing these definitions.
 declare module "libsodium-wrappers-sumo" {
-    export function crypto_auth_hmacsha256_init(key: Uint8Array): sodium.StateAddress;
-    export function crypto_auth_hmacsha256_update(stateAddress: sodium.StateAddress, messageChunk: Uint8Array): void;
-    export function crypto_auth_hmacsha256_final(stateAddress: sodium.StateAddress): Uint8Array;
+    export function crypto_auth_hmacsha256_init(key: Uint8Array): sodium.StateAddress
+    export function crypto_auth_hmacsha256_update(stateAddress: sodium.StateAddress, messageChunk: Uint8Array): void
+    export function crypto_auth_hmacsha256_final(stateAddress: sodium.StateAddress): Uint8Array
 }
 
 // HKDF extracts 32 bytes from HKDF-SHA-256 with the specified input key material, salt, and info.
