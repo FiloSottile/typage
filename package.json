@@ -7,7 +7,7 @@
     ],
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/FiloSottile/age.ts.git"
+        "url": "git+https://github.com/FiloSottile/typage.git"
     },
     "type": "module",
     "types": "./dist/index.d.ts",
