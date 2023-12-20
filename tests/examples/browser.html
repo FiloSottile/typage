@@ -2,21 +2,19 @@
 <head>
 <script src="age.js"></script>
 <script>
-    age().then((age) => {
-        const identity = age.generateIdentity()
-        const recipient = age.identityToRecipient(identity)
-        console.log(identity)
-        console.log(recipient)
+    const identity = age.generateIdentity()
+    const recipient = age.identityToRecipient(identity)
+    console.log(identity)
+    console.log(recipient)
 
-        const e = new age.Encrypter()
-        e.addRecipient(recipient)
-        const ciphertext = e.encrypt("Hello, age!")
+    const e = new age.Encrypter()
+    e.addRecipient(recipient)
+    const ciphertext = e.encrypt("Hello, age!")
 
-        const d = new age.Decrypter()
-        d.addIdentity(identity)
-        const out = d.decrypt(ciphertext, "text")
-        console.log(out)
+    const d = new age.Decrypter()
+    d.addIdentity(identity)
+    const out = d.decrypt(ciphertext, "text")
+    console.log(out)
 
-        globalThis.testDone = true
-    })
+    globalThis.testDone = true
 </script>

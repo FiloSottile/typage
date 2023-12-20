@@ -1,6 +1,6 @@
 import { describe } from "vitest"
 import { test, fc } from "@fast-check/vitest"
-import age from "../lib/index.js"
+import { Decrypter, Encrypter, generateIdentity, identityToRecipient } from "../lib/index.js"
 
 fc.configureGlobal({
   // increasing this value will make fast-check do more random test runs,
@@ -30,9 +30,7 @@ describe("Property Based Tests", () => {
       }
     )(
       "decryption should invert encryption with identity/recipient (string plaintext)",
-      async ({ plaintext }) => {
-        const { Decrypter, Encrypter, generateIdentity, identityToRecipient } = await age()
-
+      ({ plaintext }) => {
         const identity = generateIdentity()
         const recipient = identityToRecipient(identity)
 
@@ -52,9 +50,7 @@ describe("Property Based Tests", () => {
       }
     )(
       "decryption should invert encryption with identity/recipient (uint8array plaintext)",
-      async ({ plaintext }) => {
-        const { Decrypter, Encrypter, generateIdentity, identityToRecipient } = await age()
-
+      ({ plaintext }) => {
         const identity = generateIdentity()
         const recipient = identityToRecipient(identity)
 
@@ -79,8 +75,7 @@ describe("Property Based Tests", () => {
       }
     )(
       "decryption should invert encryption with passphrase (string plaintext)",
-      async ({ plaintext, passphrase, scryptWorkFactor }) => {
-        const { Decrypter, Encrypter } = await age()
+      ({ plaintext, passphrase, scryptWorkFactor }) => {
         const enc = new Encrypter()
         const dec = new Decrypter()
 
@@ -100,8 +95,7 @@ describe("Property Based Tests", () => {
       }
     )(
       "decryption should invert encryption with passphrase (UInt8Array plaintext)",
-      async ({ plaintext, passphrase, scryptWorkFactor }) => {
-        const { Decrypter, Encrypter } = await age()
+      ({ plaintext, passphrase, scryptWorkFactor }) => {
         const enc = new Encrypter()
         const dec = new Decrypter()
 

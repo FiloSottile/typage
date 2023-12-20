@@ -1,49 +1,30 @@
-import sodium from "libsodium-wrappers-sumo"
-import { decode as decodeBech32, encode as encodeBech32 } from "bech32-buffer"
+import { bech32 } from "@scure/base"
+import { hmac } from "@noble/hashes/hmac"
+import { hkdf } from "@noble/hashes/hkdf"
+import { sha256 } from "@noble/hashes/sha256"
+import { x25519 } from "@noble/curves/ed25519"
+import { randomBytes } from "@noble/hashes/utils"
 import { scryptUnwrap, scryptWrap, x25519Identity, x25519Unwrap, x25519Wrap } from "./recipients.js"
 import { encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./format.js"
 import { decryptSTREAM, encryptSTREAM } from "./stream.js"
-import { HKDF } from "./hkdf.js"
 
-interface age {
-  Encrypter: new () => Encrypter;
-  Decrypter: new () => Decrypter;
-  generateIdentity: () => string;
-  identityToRecipient: (identity: string) => string;
+export function generateIdentity(): string {
+  const scalar = randomBytes(32)
+  return bech32.encode("AGE-SECRET-KEY-", bech32.toWords(scalar)).toUpperCase()
 }
 
-let initDone = false
-
-export default async function init(): Promise<age> {
-  if (!initDone) {
-    await sodium.ready
-    initDone = true
-  }
-  return {
-    Encrypter: Encrypter,
-    Decrypter: Decrypter,
-    generateIdentity: generateIdentity,
-    identityToRecipient: identityToRecipient,
-  }
-}
-
-function generateIdentity(): string {
-  const scalar = sodium.randombytes_buf(sodium.crypto_scalarmult_curve25519_SCALARBYTES)
-  return encodeBech32("AGE-SECRET-KEY-", scalar)
-}
-
-function identityToRecipient(identity: string): string {
-  const res = decodeBech32(identity)
+export function identityToRecipient(identity: string): string {
+  const res = bech32.decodeToBytes(identity)
   if (!identity.startsWith("AGE-SECRET-KEY-1") ||
-    res.prefix.toUpperCase() !== "AGE-SECRET-KEY-" || res.encoding !== "bech32" ||
-    res.data.length !== sodium.crypto_scalarmult_curve25519_SCALARBYTES)
+    res.prefix.toUpperCase() !== "AGE-SECRET-KEY-" ||
+    res.bytes.length !== 32)
     throw Error("invalid identity")
 
-  const recipient = sodium.crypto_scalarmult_base(res.data)
-  return encodeBech32("age", recipient)
+  const recipient = x25519.scalarMultBase(res.bytes)
+  return bech32.encode("age", bech32.toWords(recipient))
 }
 
-class Encrypter {
+export class Encrypter {
   private passphrase: string | null = null
   private scryptWorkFactor = 18
   private recipients: Uint8Array[] = []
@@ -63,20 +44,20 @@ class Encrypter {
   addRecipient(s: string): void {
     if (this.passphrase !== null)
       throw new Error("can't encrypt to both recipients and passphrases")
-    const res = decodeBech32(s)
+    const res = bech32.decodeToBytes(s)
     if (!s.startsWith("age1") ||
-      res.prefix.toLowerCase() !== "age" || res.encoding !== "bech32" ||
-      res.data.length !== sodium.crypto_scalarmult_curve25519_BYTES)
+      res.prefix.toLowerCase() !== "age" ||
+      res.bytes.length !== 32)
       throw Error("invalid recipient")
-    this.recipients.push(res.data)
+    this.recipients.push(res.bytes)
   }
 
   encrypt(file: Uint8Array | string): Uint8Array {
     if (typeof file === "string") {
-      file = sodium.from_string(file)
+      file = new TextEncoder().encode(file)
     }
 
-    const fileKey = sodium.randombytes_buf(16)
+    const fileKey = randomBytes(16)
     const stanzas: Stanza[] = []
 
     for (const recipient of this.recipients) {
@@ -86,12 +67,12 @@ class Encrypter {
       stanzas.push(scryptWrap(fileKey, this.passphrase, this.scryptWorkFactor))
     }
 
-    const hmacKey = HKDF(fileKey, null, "header")
-    const mac = sodium.crypto_auth_hmacsha256(encodeHeaderNoMAC(stanzas), hmacKey)
+    const hmacKey = hkdf(sha256, fileKey, undefined, "header", 32)
+    const mac = hmac(sha256, hmacKey, encodeHeaderNoMAC(stanzas))
     const header = encodeHeader(stanzas, mac)
 
-    const nonce = sodium.randombytes_buf(16)
-    const streamKey = HKDF(fileKey, nonce, "payload")
+    const nonce = randomBytes(16)
+    const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
     const payload = encryptSTREAM(streamKey, file)
 
     const out = new Uint8Array(header.length + nonce.length + payload.length)
@@ -102,7 +83,7 @@ class Encrypter {
   }
 }
 
-class Decrypter {
+export class Decrypter {
   private passphrases: string[] = []
   private identities: x25519Identity[] = []
 
@@ -111,14 +92,14 @@ class Decrypter {
   }
 
   addIdentity(s: string): void {
-    const res = decodeBech32(s)
+    const res = bech32.decodeToBytes(s)
     if (!s.startsWith("AGE-SECRET-KEY-1") ||
-      res.prefix.toUpperCase() !== "AGE-SECRET-KEY-" || res.encoding !== "bech32" ||
-      res.data.length !== sodium.crypto_scalarmult_curve25519_SCALARBYTES)
+      res.prefix.toUpperCase() !== "AGE-SECRET-KEY-" ||
+      res.bytes.length !== 32)
       throw Error("invalid identity")
     this.identities.push({
-      identity: res.data,
-      recipient: sodium.crypto_scalarmult_base(res.data),
+      identity: res.bytes,
+      recipient: x25519.scalarMultBase(res.bytes),
     })
   }
 
@@ -131,17 +112,18 @@ class Decrypter {
       throw Error("no identity matched any of the file's recipients")
     }
 
-    const hmacKey = HKDF(fileKey, null, "header")
-    if (!sodium.crypto_auth_hmacsha256_verify(h.MAC, h.headerNoMAC, hmacKey)) {
+    const hmacKey = hkdf(sha256, fileKey, undefined, "header", 32)
+    const mac = hmac(sha256, hmacKey, h.headerNoMAC)
+    if (!compareBytes(h.MAC, mac)) {
       throw Error("invalid header HMAC")
     }
 
     const nonce = h.rest.subarray(0, 16)
-    const streamKey = HKDF(fileKey, nonce, "payload")
+    const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
     const payload = h.rest.subarray(16)
 
     const out = decryptSTREAM(streamKey, payload)
-    if (outputFormat === "text") return sodium.to_string(out)
+    if (outputFormat === "text") return new TextDecoder().decode(out)
     return out
   }
 
@@ -166,4 +148,13 @@ class Decrypter {
     }
     return null
   }
+}
+
+function compareBytes(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) { return false }
+  let acc = 0
+  for (let i = 0; i < a.length; i++) {
+    acc |= a[i] ^ b[i]
+  }
+  return acc === 0
 }

@@ -2,11 +2,10 @@ import { describe, it, assert } from "vitest"
 import { readFileSync, readdirSync } from "fs"
 import { encodeHeader, encodeHeaderNoMAC, parseHeader } from "../lib/format.js"
 import { decryptSTREAM, encryptSTREAM } from "../lib/stream.js"
-import { HKDF } from "../lib/hkdf.js"
-import age from "../lib/index.js"
-import sodium from "libsodium-wrappers-sumo"
-const { from_hex, to_hex } = sodium
-await sodium.ready
+import { hkdf } from "@noble/hashes/hkdf"
+import { sha256 } from "@noble/hashes/sha256"
+import { hex } from "@scure/base"
+import { Decrypter } from "../lib/index.js"
 
 describe("CCTV testkit", function () {
     interface Vector {
@@ -31,15 +30,14 @@ describe("CCTV testkit", function () {
     for (const vec of vectors) {
         if (vec.meta.armored) continue
         if (vec.meta.expect === "success") {
-            it(vec.name + " should succeed", async function () {
-                const { Decrypter } = await age()
+            it(vec.name + " should succeed", function () {
                 const d = new Decrypter()
                 if (vec.meta.passphrase)
                     d.addPassphrase(vec.meta.passphrase)
                 if (vec.meta.identity)
                     d.addIdentity(vec.meta.identity)
                 const plaintext = d.decrypt(vec.body)
-                assert.equal(to_hex(sodium.crypto_hash_sha256(plaintext)), vec.meta.payload)
+                assert.equal(hex.encode(sha256(plaintext)), vec.meta.payload)
             })
             it(vec.name + " should round-trip header encoding", function () {
                 const h = parseHeader(vec.body)
@@ -53,14 +51,13 @@ describe("CCTV testkit", function () {
             it(vec.name + " should round-trip STREAM encryption", function () {
                 const h = parseHeader(vec.body)
                 const nonce = h.rest.subarray(0, 16)
-                const streamKey = HKDF(from_hex(vec.meta["file key"]), nonce, "payload")
+                const streamKey = hkdf(sha256, hex.decode(vec.meta["file key"]), nonce, "payload", 32)
                 const payload = h.rest.subarray(16)
                 const plaintext = decryptSTREAM(streamKey, payload)
                 assert.deepEqual(encryptSTREAM(streamKey, plaintext), payload)
             })
         } else {
-            it(vec.name + " should fail", async function () {
-                const { Decrypter } = await age()
+            it(vec.name + " should fail", function () {
                 const d = new Decrypter()
                 if (vec.meta.passphrase)
                     d.addPassphrase(vec.meta.passphrase)

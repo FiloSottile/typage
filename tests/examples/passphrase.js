@@ -1,7 +1,4 @@
-import age from "age-encryption"
-
-// Initialize the age library (calls sodium.ready).
-const { Encrypter, Decrypter } = await age()
+import { Encrypter, Decrypter } from "age-encryption"
 
 const e = new Encrypter()
 e.setScryptWorkFactor(12) // this is NOT secure, used to avoid extra work in tests

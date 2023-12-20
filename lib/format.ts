@@ -1,8 +1,16 @@
-import sodium from "libsodium-wrappers-sumo"
-const { base64_variants, from_base64, from_string, to_base64, to_string } = sodium
+import { base64 } from "@scure/base"
 
-export const decodeBase64 = (s: string) => from_base64(s, base64_variants.ORIGINAL_NO_PADDING)
-export const encodeBase64 = (s: Uint8Array) => to_base64(s, base64_variants.ORIGINAL_NO_PADDING)
+export function decodeBase64(s: string): Uint8Array {
+    if (/=+$/.test(s)) { throw Error("invalid base64") }
+    const paddedLen = Math.ceil(s.length / 4) * 4
+    const padded = s + "=".repeat(paddedLen - s.length)
+    return base64.decode(padded)
+}
+
+export function encodeBase64(arr: Uint8Array): string {
+    const s = base64.encode(arr)
+    return s.replace(/=+$/, "")
+}
 
 export class Stanza {
     readonly args: string[]
@@ -26,7 +34,7 @@ class ByteReader {
                 throw Error("invalid non-ASCII byte in header")
             }
         })
-        return to_string(bytes)
+        return new TextDecoder().decode(bytes)
     }
 
     readString(n: number): string {
@@ -151,12 +159,12 @@ export function encodeHeaderNoMAC(recipients: Stanza[]): Uint8Array {
     }
 
     lines.push("---")
-    return from_string(lines.join(""))
+    return new TextEncoder().encode(lines.join(""))
 }
 
 export function encodeHeader(recipients: Stanza[], MAC: Uint8Array): Uint8Array {
     return flattenArray([
         encodeHeaderNoMAC(recipients),
-        from_string(" " + encodeBase64(MAC) + "\n")
+        new TextEncoder().encode(" " + encodeBase64(MAC) + "\n")
     ])
 }

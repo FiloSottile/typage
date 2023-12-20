@@ -1,8 +1,5 @@
-import sodium from "libsodium-wrappers-sumo"
+import { chacha20poly1305 } from "@noble/ciphers/chacha"
 
-// We can't use sodium.crypto_aead_chacha20poly1305_IETF_ABYTES here before
-// sodium.ready, or it will make the constant be silently NaN, and nothing will
-// throw but plaintext will end up empty. Love it.
 const chacha20poly1305Overhead = 16
 
 const chunkSize = 64 * 1024
@@ -23,8 +20,8 @@ export function decryptSTREAM(key: Uint8Array, ciphertext: Uint8Array): Uint8Arr
 
     let plaintextSlice = plaintext
     while (ciphertext.length > chunkSizeWithOverhead) {
-        const chunk = sodium.crypto_aead_chacha20poly1305_ietf_decrypt(
-            null, ciphertext.subarray(0, chunkSizeWithOverhead), null, streamNonce, key)
+        const chunk = chacha20poly1305(key, streamNonce).decrypt(
+            ciphertext.subarray(0, chunkSizeWithOverhead))
         plaintextSlice.set(chunk)
         plaintextSlice = plaintextSlice.subarray(chunk.length)
         ciphertext = ciphertext.subarray(chunkSizeWithOverhead)
@@ -32,7 +29,7 @@ export function decryptSTREAM(key: Uint8Array, ciphertext: Uint8Array): Uint8Arr
     }
 
     streamNonce[11] = 1 // Last chunk flag.
-    const chunk = sodium.crypto_aead_chacha20poly1305_ietf_decrypt(null, ciphertext, null, streamNonce, key)
+    const chunk = chacha20poly1305(key, streamNonce).decrypt(ciphertext)
     plaintextSlice.set(chunk)
     if (chunk.length === 0 && plaintext.length !== 0)
         throw Error("empty final chunk")
@@ -57,8 +54,8 @@ export function encryptSTREAM(key: Uint8Array, plaintext: Uint8Array): Uint8Arra
 
     let ciphertextSlice = ciphertext
     while (plaintext.length > chunkSize) {
-        const chunk = sodium.crypto_aead_chacha20poly1305_ietf_encrypt(
-            plaintext.subarray(0, chunkSize), null, null, streamNonce, key)
+        const chunk = chacha20poly1305(key, streamNonce).encrypt(
+            plaintext.subarray(0, chunkSize))
         ciphertextSlice.set(chunk)
         ciphertextSlice = ciphertextSlice.subarray(chunk.length)
         plaintext = plaintext.subarray(chunkSize)
@@ -66,7 +63,7 @@ export function encryptSTREAM(key: Uint8Array, plaintext: Uint8Array): Uint8Arra
     }
 
     streamNonce[11] = 1 // Last chunk flag.
-    const chunk = sodium.crypto_aead_chacha20poly1305_ietf_encrypt(plaintext, null, null, streamNonce, key)
+    const chunk = chacha20poly1305(key, streamNonce).encrypt(plaintext)
     ciphertextSlice.set(chunk)
     if (ciphertextSlice.length !== chunk.length)
         throw Error("stream: internal error: didn't fill expected ciphertext buffer")
