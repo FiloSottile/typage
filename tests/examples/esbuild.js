@@ -1,2 +1,2 @@
-import age from "age-encryption"
+import * as age from "age-encryption"
 globalThis.age = age

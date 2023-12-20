@@ -1,9 +1,8 @@
-import { strict as assert } from "assert"
-import { describe, it } from "vitest"
+import { describe, it, assert } from "vitest"
 import { decodeBase64, encodeHeader, encodeHeaderNoMAC, parseHeader } from "../lib/format.js"
-import sodium from "libsodium-wrappers-sumo"
-const { from_string, to_string } = sodium
-await sodium.ready
+
+const to_string = (a: Uint8Array): string => new TextDecoder().decode(a)
+const from_string = (s: string): Uint8Array => new TextEncoder().encode(s)
 
 const exampleHeader = `age-encryption.org/v1
 -> X25519 abc

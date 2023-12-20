@@ -1,7 +1,4 @@
-import age from "age-encryption"
-
-// Initialize the age library (calls sodium.ready).
-const { Encrypter, Decrypter, generateIdentity, identityToRecipient } = await age()
+import { Encrypter, Decrypter, generateIdentity, identityToRecipient } from "age-encryption"
 
 const identity = generateIdentity()
 const recipient = identityToRecipient(identity)
