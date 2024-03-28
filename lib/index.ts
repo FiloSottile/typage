@@ -167,3 +167,5 @@ class Decrypter {
     return null
   }
 }
+
+export type { age, Encrypter, Decrypter }
