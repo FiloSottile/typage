@@ -107,7 +107,7 @@ export function parseHeader(header: Uint8Array): {
     const hdr = new ByteReader(header)
     const versionLine = hdr.readLine()
     if (versionLine !== "age-encryption.org/v1") {
-        throw Error("invalid version " + versionLine)
+        throw Error("invalid version " + (versionLine ?? "line"))
     }
     let rest = hdr.rest()
 
