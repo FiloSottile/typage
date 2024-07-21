@@ -2,6 +2,8 @@ name: Test
 on:
   push:
   pull_request:
+  schedule:
+    - cron: "43 19 * * *"
 permissions:
   contents: read
 jobs:
@@ -10,8 +12,9 @@ jobs:
     strategy:
       matrix:
         node-version:
-          - 18.x # LTS as of 2023-11
-          - 20.x # current as of 2023-11
+          - 18.x # Maintenance LTS as of 2024-07
+          - 20.x # Active LTS as of 2024-07
+          - 22.x # Current as of 2024-07
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
