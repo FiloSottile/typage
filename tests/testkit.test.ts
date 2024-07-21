@@ -1,28 +1,49 @@
-import { describe, it, assert } from "vitest"
-import { readFileSync, readdirSync } from "fs"
+import { describe, it, assert, expect } from "vitest"
 import { encodeHeader, encodeHeaderNoMAC, parseHeader } from "../lib/format.js"
 import { decryptSTREAM, encryptSTREAM } from "../lib/stream.js"
 import { hkdf } from "@noble/hashes/hkdf"
 import { sha256 } from "@noble/hashes/sha256"
-import { hex } from "@scure/base"
+import { hex, base64 } from "@scure/base"
 import { Decrypter } from "../lib/index.js"
 
-describe("CCTV testkit", function () {
+declare module "@vitest/browser/context" {
+    interface BrowserCommands {
+        listTestkitFiles: () => Promise<string[]>
+        readTestkitFile: (name: string) => Promise<string>
+    }
+}
+
+let listTestkitFiles: () => Promise<string[]>
+let readTestkitFile: (name: string) => Promise<Uint8Array>
+if (expect.getState().environment === "node") {
+    const { readdir, readFile } = await import("fs/promises")
+    listTestkitFiles = () => readdir("./tests/testkit")
+    readTestkitFile = (name) => readFile("./tests/testkit/" + name)
+} else {
+    const { commands } = await import("@vitest/browser/context")
+    listTestkitFiles = commands.listTestkitFiles
+    readTestkitFile = async (name) => base64.decode(await commands.readTestkitFile(name))
+}
+
+describe("CCTV testkit", async function () {
     interface Vector {
         name: string,
         meta: Record<string, string>,
         body: Uint8Array,
     }
     const vectors: Vector[] = []
-    for (const name of readdirSync("./tests/testkit")) {
-        const contents = readFileSync("./tests/testkit/" + name)
-        const sepIdx = contents.indexOf("\n\n")
-        const header = contents.subarray(0, sepIdx).toString()
+    for (const name of await listTestkitFiles()) {
+        const contents = await readTestkitFile(name)
+        const sepIdx = findSeparator(contents)
+        const header = new TextDecoder().decode(contents.subarray(0, sepIdx))
         const body = contents.subarray(sepIdx + 2)
         const vector: Vector = { name: name, meta: {}, body: body }
         for (const line of header.split("\n")) {
             const parts = line.split(": ", 2)
             vector.meta[parts[0]] = parts[1]
+        }
+        if (!vector.meta.expect) {
+            throw Error("no metadata found in " + name)
         }
         vectors.push(vector)
     }
@@ -68,3 +89,11 @@ describe("CCTV testkit", function () {
         }
     }
 })
+
+function findSeparator(data: Uint8Array): number {
+    for (let i = 0; i < data.length; i++) {
+        if (data[i] === 0x0A && data[i + 1] === 0x0A)
+            return i
+    }
+    return -1
+}

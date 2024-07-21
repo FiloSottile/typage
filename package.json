@@ -24,6 +24,7 @@
     },
     "scripts": {
         "test": "vitest --run",
+        "test:short": "vitest --run --project node",
         "examples:node": "cd tests/examples && npm install && npm run test:node",
         "examples:bun": "cd tests/examples && npm install && npm run test:bun",
         "examples:esbuild": "cd tests/examples && npm install && npm run test:esbuild",
@@ -37,9 +38,11 @@
         "@types/node": "^20.14.11",
         "@typescript-eslint/eslint-plugin": "^7.16.1",
         "@typescript-eslint/parser": "^7.16.1",
+        "@vitest/browser": "^2.0.3",
         "eslint": "^8.57.0",
         "typescript": "^5.5.3",
-        "vitest": "^2.0.3"
+        "vitest": "^2.0.3",
+        "webdriverio": "^8.39.1"
     },
     "author": "Filippo Valsorda <npm@filippo.io> (https://filippo.io)",
     "license": "BSD-3-Clause"

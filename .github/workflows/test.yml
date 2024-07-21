@@ -21,13 +21,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-      - uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
       - run: npm install
       - run: npm run build
       - run: npm run lint
       - run: npm run test
       - run: npm run examples:node
-      - run: npm run examples:bun
       - run: npm run examples:esbuild
+  bun:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun run build
+      - run: bun run test:short
+      - run: bun run examples:bun
