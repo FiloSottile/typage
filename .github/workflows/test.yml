@@ -16,9 +16,9 @@ jobs:
           - 20.x # Active LTS as of 2024-07
           - 22.4.x # Current as of 2024-07, npm/cli#7657
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@1e31de5234b9f8995739874a8ce0492dc87873e2 # v4
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@8f152de45cc393bb48ce5d89d36b731f54556e65 # v4
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm install
@@ -30,8 +30,8 @@ jobs:
   bun:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v1
+      - uses: actions/checkout@1e31de5234b9f8995739874a8ce0492dc87873e2 # v4
+      - uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7 # v1
         with:
           bun-version: latest
       - run: bun install
