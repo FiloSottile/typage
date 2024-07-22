@@ -62,9 +62,14 @@ To produce a classic library file that sets `age` as a global variable, you can 
 
 ```sh
 cd "$(mktemp -d)" && npm init -y && npm install esbuild age-encryption
-echo 'import * as age from "age-encryption"; globalThis.age = age' | \
-  npx esbuild --target=es6 --bundle --minify --outfile=age.js
+npx esbuild --target=es6 --bundle --minify --outfile=age.js --global-name=age age-encryption
 ```
+
+<-- TODO: why doesn't
+
+  npx --package esbuild --package age-encryption -- esbuild ...
+
+work? It should run esbuild in an environment where age-encryption is available. -->
 
 Then, you can use it like this
 
