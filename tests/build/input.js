@@ -1,1 +1,1 @@
-export * from 'age-encryption';
+export * from "age-encryption"
