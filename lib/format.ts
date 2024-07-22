@@ -1,16 +1,4 @@
-import { base64 } from "@scure/base"
-
-export function decodeBase64(s: string): Uint8Array {
-    if (/=+$/.test(s)) { throw Error("invalid base64") }
-    const paddedLen = Math.ceil(s.length / 4) * 4
-    const padded = s + "=".repeat(paddedLen - s.length)
-    return base64.decode(padded)
-}
-
-export function encodeBase64(arr: Uint8Array): string {
-    const s = base64.encode(arr)
-    return s.replace(/=+$/, "")
-}
+import { base64nopad } from "@scure/base"
 
 export class Stanza {
     readonly args: string[]
@@ -84,7 +72,7 @@ function parseNextStanza(header: Uint8Array): [s: Stanza, rest: Uint8Array] {
         if (nextLine === null) {
             throw Error("invalid stanza")
         }
-        const line = decodeBase64(nextLine)
+        const line = base64nopad.decode(nextLine)
         if (line.length > 48) {
             throw Error("invalid stanza")
         }
@@ -132,7 +120,7 @@ export function parseHeader(header: Uint8Array): {
             if (macLine === null) {
                 throw Error("invalid header")
             }
-            const mac = decodeBase64(macLine)
+            const mac = base64nopad.decode(macLine)
 
             return {
                 recipients: recipients,
@@ -153,7 +141,7 @@ export function encodeHeaderNoMAC(recipients: Stanza[]): Uint8Array {
         for (let i = 0; i < s.body.length; i += 48) {
             let end = i + 48
             if (end > s.body.length) end = s.body.length
-            lines.push(encodeBase64(s.body.subarray(i, end)) + "\n")
+            lines.push(base64nopad.encode(s.body.subarray(i, end)) + "\n")
         }
         if (s.body.length % 48 === 0) lines.push("\n")
     }
@@ -165,6 +153,6 @@ export function encodeHeaderNoMAC(recipients: Stanza[]): Uint8Array {
 export function encodeHeader(recipients: Stanza[], MAC: Uint8Array): Uint8Array {
     return flattenArray([
         encodeHeaderNoMAC(recipients),
-        new TextEncoder().encode(" " + encodeBase64(MAC) + "\n")
+        new TextEncoder().encode(" " + base64nopad.encode(MAC) + "\n")
     ])
 }

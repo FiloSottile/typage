@@ -4,7 +4,8 @@ import { scrypt } from "@noble/hashes/scrypt"
 import { x25519 } from "@noble/curves/ed25519"
 import { chacha20poly1305 } from "@noble/ciphers/chacha"
 import { randomBytes } from "@noble/hashes/utils"
-import { decodeBase64, encodeBase64, Stanza } from "./format.js"
+import { base64nopad } from "@scure/base"
+import { Stanza } from "./format.js"
 
 export interface x25519Identity {
     identity: Uint8Array, recipient: Uint8Array,
@@ -20,7 +21,7 @@ export function x25519Wrap(fileKey: Uint8Array, recipient: Uint8Array): Stanza {
     salt.set(recipient, share.length)
 
     const key = hkdf(sha256, secret, salt, "age-encryption.org/v1/X25519", 32)
-    return new Stanza(["X25519", encodeBase64(share)], encryptFileKey(fileKey, key))
+    return new Stanza(["X25519", base64nopad.encode(share)], encryptFileKey(fileKey, key))
 }
 
 export function x25519Unwrap(s: Stanza, i: x25519Identity): Uint8Array | null {
@@ -30,7 +31,7 @@ export function x25519Unwrap(s: Stanza, i: x25519Identity): Uint8Array | null {
     if (s.args.length !== 2) {
         throw Error("invalid X25519 stanza")
     }
-    const share = decodeBase64(s.args[1])
+    const share = base64nopad.decode(s.args[1])
     if (share.length !== 32) {
         throw Error("invalid X25519 stanza")
     }
@@ -53,7 +54,7 @@ export function scryptWrap(fileKey: Uint8Array, passphrase: string, logN: number
     labelAndSalt.set(salt, label.length)
 
     const key = scrypt(passphrase, labelAndSalt, { N: 2 ** logN, r: 8, p: 1, dkLen: 32 })
-    return new Stanza(["scrypt", encodeBase64(salt), logN.toString()], encryptFileKey(fileKey, key))
+    return new Stanza(["scrypt", base64nopad.encode(salt), logN.toString()], encryptFileKey(fileKey, key))
 }
 
 export function scryptUnwrap(s: Stanza, passphrase: string): Uint8Array | null {
@@ -66,7 +67,7 @@ export function scryptUnwrap(s: Stanza, passphrase: string): Uint8Array | null {
     if (!/^[1-9][0-9]*$/.test(s.args[2])) {
         throw Error("invalid scrypt stanza")
     }
-    const salt = decodeBase64(s.args[1])
+    const salt = base64nopad.decode(s.args[1])
     if (salt.length !== 16) {
         throw Error("invalid scrypt stanza")
     }
