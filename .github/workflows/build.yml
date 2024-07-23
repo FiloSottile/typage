@@ -1,0 +1,38 @@
+name: Build and upload bundle
+on:
+  release:
+    types: [published]
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - run: npm install
+      - run: npm run build
+      - run: npx --yes esbuild@0.20.1 --target=es6 --bundle --minify
+          --outfile=age-esbuild.js --global-name=age .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: age-esbuild
+          path: age-esbuild.js
+  upload:
+    if: github.event_name == 'release'
+    needs: build
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: age-esbuild
+      - run: gh release upload "$VERSION" "age-esbuild.js#age-${VERSION#v}.min.js"
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
+          GH_TOKEN: ${{ github.token }}
