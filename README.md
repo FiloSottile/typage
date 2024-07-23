@@ -65,7 +65,9 @@ cd "$(mktemp -d)" && npm init -y && npm install esbuild age-encryption
 npx esbuild --target=es6 --bundle --minify --outfile=age.js --global-name=age age-encryption
 ```
 
-<-- TODO: why doesn't
+or download a pre-built one from the [Releases page](https://github.com/FiloSottile/typage/releases).
+
+<!-- TODO: why doesn't
 
   npx --package esbuild --package age-encryption -- esbuild ...
 
