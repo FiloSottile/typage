@@ -28,6 +28,7 @@
         "examples:node": "cd tests/examples && npm install && npm run test:node",
         "examples:bun": "cd tests/examples && bun install && bun run test:bun",
         "examples:esbuild": "cd tests/examples && npm install && npm run test:esbuild",
+        "bench": "vitest bench --run",
         "lint": "eslint .",
         "build": "tsc -p tsconfig.build.json",
         "prepublishOnly": "npm run build"

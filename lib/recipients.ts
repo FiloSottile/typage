@@ -1,20 +1,20 @@
 import { hkdf } from "@noble/hashes/hkdf"
 import { sha256 } from "@noble/hashes/sha256"
 import { scrypt } from "@noble/hashes/scrypt"
-import { x25519 } from "@noble/curves/ed25519"
 import { chacha20poly1305 } from "@noble/ciphers/chacha"
 import { randomBytes } from "@noble/hashes/utils"
 import { base64nopad } from "@scure/base"
+import * as x25519 from "./x25519.js"
 import { Stanza } from "./format.js"
 
 export interface x25519Identity {
-    identity: Uint8Array, recipient: Uint8Array,
+    identity: Uint8Array | CryptoKey, recipient: Promise<Uint8Array>,
 }
 
-export function x25519Wrap(fileKey: Uint8Array, recipient: Uint8Array): Stanza {
+export async function x25519Wrap(fileKey: Uint8Array, recipient: Uint8Array): Promise<Stanza> {
     const ephemeral = randomBytes(32)
-    const share = x25519.scalarMultBase(ephemeral)
-    const secret = x25519.scalarMult(ephemeral, recipient)
+    const share = await x25519.scalarMultBase(ephemeral)
+    const secret = await x25519.scalarMult(ephemeral, recipient)
 
     const salt = new Uint8Array(share.length + recipient.length)
     salt.set(share)
@@ -24,7 +24,7 @@ export function x25519Wrap(fileKey: Uint8Array, recipient: Uint8Array): Stanza {
     return new Stanza(["X25519", base64nopad.encode(share)], encryptFileKey(fileKey, key))
 }
 
-export function x25519Unwrap(s: Stanza, i: x25519Identity): Uint8Array | null {
+export async function x25519Unwrap(s: Stanza, i: x25519Identity): Promise<Uint8Array | null> {
     if (s.args.length < 1 || s.args[0] !== "X25519") {
         return null
     }
@@ -36,11 +36,12 @@ export function x25519Unwrap(s: Stanza, i: x25519Identity): Uint8Array | null {
         throw Error("invalid X25519 stanza")
     }
 
-    const secret = x25519.scalarMult(i.identity, share)
+    const secret = await x25519.scalarMult(i.identity, share)
 
-    const salt = new Uint8Array(share.length + i.recipient.length)
+    const recipient = await i.recipient
+    const salt = new Uint8Array(share.length + recipient.length)
     salt.set(share)
-    salt.set(i.recipient, share.length)
+    salt.set(recipient, share.length)
 
     const key = hkdf(sha256, secret, salt, "age-encryption.org/v1/X25519", 32)
     return decryptFileKey(s.body, key)

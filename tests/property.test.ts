@@ -30,9 +30,9 @@ describe("Property Based Tests", () => {
       }
     )(
       "decryption should invert encryption with identity/recipient (string plaintext)",
-      ({ plaintext }) => {
-        const identity = generateIdentity()
-        const recipient = identityToRecipient(identity)
+      async ({ plaintext }) => {
+        const identity = await generateIdentity()
+        const recipient = await identityToRecipient(identity)
 
         const enc = new Encrypter()
         const dec = new Decrypter()
@@ -40,7 +40,7 @@ describe("Property Based Tests", () => {
         enc.addRecipient(recipient)
         dec.addIdentity(identity)
 
-        return dec.decrypt(enc.encrypt(plaintext), "text") === plaintext
+        return await dec.decrypt(await enc.encrypt(plaintext), "text") === plaintext
       }
     )
 
@@ -50,9 +50,9 @@ describe("Property Based Tests", () => {
       }
     )(
       "decryption should invert encryption with identity/recipient (uint8array plaintext)",
-      ({ plaintext }) => {
-        const identity = generateIdentity()
-        const recipient = identityToRecipient(identity)
+      async ({ plaintext }) => {
+        const identity = await generateIdentity()
+        const recipient = await identityToRecipient(identity)
 
         const enc = new Encrypter()
         const dec = new Decrypter()
@@ -60,7 +60,7 @@ describe("Property Based Tests", () => {
         enc.addRecipient(recipient)
         dec.addIdentity(identity)
 
-        return isEqualUInt8Array(dec.decrypt(enc.encrypt(plaintext)), plaintext)
+        return isEqualUInt8Array(await dec.decrypt(await enc.encrypt(plaintext)), plaintext)
       }
     )
   })
@@ -75,7 +75,7 @@ describe("Property Based Tests", () => {
       }
     )(
       "decryption should invert encryption with passphrase (string plaintext)",
-      ({ plaintext, passphrase, scryptWorkFactor }) => {
+      async ({ plaintext, passphrase, scryptWorkFactor }) => {
         const enc = new Encrypter()
         const dec = new Decrypter()
 
@@ -83,7 +83,7 @@ describe("Property Based Tests", () => {
         enc.setPassphrase(passphrase)
         dec.addPassphrase(passphrase)
 
-        return dec.decrypt(enc.encrypt(plaintext), "text") === plaintext
+        return await dec.decrypt(await enc.encrypt(plaintext), "text") === plaintext
       }
     )
 
@@ -95,7 +95,7 @@ describe("Property Based Tests", () => {
       }
     )(
       "decryption should invert encryption with passphrase (UInt8Array plaintext)",
-      ({ plaintext, passphrase, scryptWorkFactor }) => {
+      async ({ plaintext, passphrase, scryptWorkFactor }) => {
         const enc = new Encrypter()
         const dec = new Decrypter()
 
@@ -103,7 +103,7 @@ describe("Property Based Tests", () => {
         enc.setPassphrase(passphrase)
         dec.addPassphrase(passphrase)
 
-        return isEqualUInt8Array(dec.decrypt(enc.encrypt(plaintext)), plaintext)
+        return isEqualUInt8Array(await dec.decrypt(await enc.encrypt(plaintext)), plaintext)
       }
     )
   })

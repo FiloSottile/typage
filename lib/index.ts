@@ -2,25 +2,32 @@ import { bech32 } from "@scure/base"
 import { hmac } from "@noble/hashes/hmac"
 import { hkdf } from "@noble/hashes/hkdf"
 import { sha256 } from "@noble/hashes/sha256"
-import { x25519 } from "@noble/curves/ed25519"
 import { randomBytes } from "@noble/hashes/utils"
+import * as x25519 from "./x25519.js"
 import { scryptUnwrap, scryptWrap, x25519Identity, x25519Unwrap, x25519Wrap } from "./recipients.js"
 import { encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./format.js"
 import { decryptSTREAM, encryptSTREAM } from "./stream.js"
 
-export function generateIdentity(): string {
+export function generateIdentity(): Promise<string> {
   const scalar = randomBytes(32)
-  return bech32.encode("AGE-SECRET-KEY-", bech32.toWords(scalar)).toUpperCase()
+  const identity = bech32.encode("AGE-SECRET-KEY-", bech32.toWords(scalar)).toUpperCase()
+  return Promise.resolve(identity)
 }
 
-export function identityToRecipient(identity: string): string {
-  const res = bech32.decodeToBytes(identity)
-  if (!identity.startsWith("AGE-SECRET-KEY-1") ||
-    res.prefix.toUpperCase() !== "AGE-SECRET-KEY-" ||
-    res.bytes.length !== 32)
-    throw Error("invalid identity")
+export async function identityToRecipient(identity: string | CryptoKey): Promise<string> {
+  let scalar: Uint8Array | CryptoKey
+  if (identity instanceof CryptoKey) {
+    scalar = identity
+  } else {
+    const res = bech32.decodeToBytes(identity)
+    if (!identity.startsWith("AGE-SECRET-KEY-1") ||
+      res.prefix.toUpperCase() !== "AGE-SECRET-KEY-" ||
+      res.bytes.length !== 32)
+      throw Error("invalid identity")
+    scalar = res.bytes
+  }
 
-  const recipient = x25519.scalarMultBase(res.bytes)
+  const recipient = await x25519.scalarMultBase(scalar)
   return bech32.encode("age", bech32.toWords(recipient))
 }
 
@@ -52,7 +59,7 @@ export class Encrypter {
     this.recipients.push(res.bytes)
   }
 
-  encrypt(file: Uint8Array | string): Uint8Array {
+  async encrypt(file: Uint8Array | string): Promise<Uint8Array> {
     if (typeof file === "string") {
       file = new TextEncoder().encode(file)
     }
@@ -61,7 +68,7 @@ export class Encrypter {
     const stanzas: Stanza[] = []
 
     for (const recipient of this.recipients) {
-      stanzas.push(x25519Wrap(fileKey, recipient))
+      stanzas.push(await x25519Wrap(fileKey, recipient))
     }
     if (this.passphrase !== null) {
       stanzas.push(scryptWrap(fileKey, this.passphrase, this.scryptWorkFactor))
@@ -91,7 +98,14 @@ export class Decrypter {
     this.passphrases.push(s)
   }
 
-  addIdentity(s: string): void {
+  addIdentity(s: string | CryptoKey): void {
+    if (s instanceof CryptoKey) {
+      this.identities.push({
+        identity: s,
+        recipient: x25519.scalarMultBase(s),
+      })
+      return
+    }
     const res = bech32.decodeToBytes(s)
     if (!s.startsWith("AGE-SECRET-KEY-1") ||
       res.prefix.toUpperCase() !== "AGE-SECRET-KEY-" ||
@@ -103,11 +117,11 @@ export class Decrypter {
     })
   }
 
-  decrypt(file: Uint8Array, outputFormat?: "uint8array"): Uint8Array
-  decrypt(file: Uint8Array, outputFormat: "text"): string
-  decrypt(file: Uint8Array, outputFormat?: "text" | "uint8array"): Uint8Array | string {
+  async decrypt(file: Uint8Array, outputFormat?: "uint8array"): Promise<Uint8Array>
+  async decrypt(file: Uint8Array, outputFormat: "text"): Promise<string>
+  async decrypt(file: Uint8Array, outputFormat?: "text" | "uint8array"): Promise<string | Uint8Array> {
     const h = parseHeader(file)
-    const fileKey = this.unwrapFileKey(h.recipients)
+    const fileKey = await this.unwrapFileKey(h.recipients)
     if (fileKey === null) {
       throw Error("no identity matched any of the file's recipients")
     }
@@ -127,7 +141,7 @@ export class Decrypter {
     return out
   }
 
-  private unwrapFileKey(recipients: Stanza[]): Uint8Array | null {
+  private async unwrapFileKey(recipients: Stanza[]): Promise<Uint8Array | null> {
     for (const s of recipients) {
       // Ideally this should be implemented by passing all stanzas to the scrypt
       // identity implementation, and letting it throw the error. In practice,
@@ -142,7 +156,7 @@ export class Decrypter {
       }
 
       for (const i of this.identities) {
-        const k = x25519Unwrap(s, i)
+        const k = await x25519Unwrap(s, i)
         if (k !== null) { return k }
       }
     }

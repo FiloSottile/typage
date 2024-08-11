@@ -27,18 +27,18 @@ npm install age-encryption
 ```ts
 import * as age from "age-encryption"
 
-const identity = age.generateIdentity()
-const recipient = age.identityToRecipient(identity)
+const identity = await age.generateIdentity()
+const recipient = await age.identityToRecipient(identity)
 console.log(identity)
 console.log(recipient)
 
 const e = new age.Encrypter()
 e.addRecipient(recipient)
-const ciphertext = e.encrypt("Hello, age!")
+const ciphertext = await e.encrypt("Hello, age!")
 
 const d = new age.Decrypter()
 d.addIdentity(identity)
-const out = d.decrypt(ciphertext, "text")
+const out = await d.decrypt(ciphertext, "text")
 console.log(out)
 ```
 
@@ -49,11 +49,11 @@ import { Encrypter, Decrypter } from "age-encryption"
 
 const e = new Encrypter()
 e.setPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-three")
-const ciphertext = e.encrypt("Hello, age!")
+const ciphertext = await e.encrypt("Hello, age!")
 
 const d = new Decrypter()
 d.addPassphrase("burst-swarm-slender-curve-ability-various-crystal-moon-affair-three")
-const out = d.decrypt(ciphertext, "text")
+const out = await d.decrypt(ciphertext, "text")
 console.log(out)
 ```
 
@@ -81,18 +81,20 @@ Then, you can use it like this
 ```html
 <script src="age.js"></script>
 <script>
-    const identity = age.generateIdentity()
-    const recipient = age.identityToRecipient(identity)
+(async () => {
+    const identity = await age.generateIdentity()
+    const recipient = await age.identityToRecipient(identity)
     console.log(identity)
     console.log(recipient)
 
     const e = new age.Encrypter()
     e.addRecipient(recipient)
-    const ciphertext = e.encrypt("Hello, age!")
+    const ciphertext = await e.encrypt("Hello, age!")
 
     const d = new age.Decrypter()
     d.addIdentity(identity)
-    const out = d.decrypt(ciphertext, "text")
+    const out = await d.decrypt(ciphertext, "text")
     console.log(out)
+})()
 </script>
 ```

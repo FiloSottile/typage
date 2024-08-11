@@ -1,6 +1,7 @@
-import { describe, it, assert, expect } from "vitest"
+import { describe, it, assert, expect, onTestFinished } from "vitest"
 import { encodeHeader, encodeHeaderNoMAC, parseHeader } from "../lib/format.js"
 import { decryptSTREAM, encryptSTREAM } from "../lib/stream.js"
+import { forceWebCryptoOff } from "../lib/x25519.js"
 import { hkdf } from "@noble/hashes/hkdf"
 import { sha256 } from "@noble/hashes/sha256"
 import { hex, base64 } from "@scure/base"
@@ -51,15 +52,24 @@ describe("CCTV testkit", async function () {
     for (const vec of vectors) {
         if (vec.meta.armored) continue
         if (vec.meta.expect === "success") {
-            it(vec.name + " should succeed", function () {
+            it(vec.name + " should succeed", async function () {
                 const d = new Decrypter()
                 if (vec.meta.passphrase)
                     d.addPassphrase(vec.meta.passphrase)
                 if (vec.meta.identity)
                     d.addIdentity(vec.meta.identity)
-                const plaintext = d.decrypt(vec.body)
+                const plaintext = await d.decrypt(vec.body)
                 assert.equal(hex.encode(sha256(plaintext)), vec.meta.payload)
             })
+            if (vec.meta.identity) {
+                it(vec.name + " should succeed without Web Crypto", async function () {
+                    withoutWebCrypto()
+                    const d = new Decrypter()
+                    d.addIdentity(vec.meta.identity)
+                    const plaintext = await d.decrypt(vec.body)
+                    assert.equal(hex.encode(sha256(plaintext)), vec.meta.payload)
+                })
+            }
             it(vec.name + " should round-trip header encoding", function () {
                 const h = parseHeader(vec.body)
                 assert.deepEqual(encodeHeaderNoMAC(h.recipients), h.headerNoMAC)
@@ -78,17 +88,30 @@ describe("CCTV testkit", async function () {
                 assert.deepEqual(encryptSTREAM(streamKey, plaintext), payload)
             })
         } else {
-            it(vec.name + " should fail", function () {
+            it(vec.name + " should fail", async function () {
                 const d = new Decrypter()
                 if (vec.meta.passphrase)
                     d.addPassphrase(vec.meta.passphrase)
                 if (vec.meta.identity)
                     d.addIdentity(vec.meta.identity)
-                assert.throws(() => { d.decrypt(vec.body) })
+                await expect(d.decrypt(vec.body)).rejects.toThrow()
             })
+            if (vec.meta.identity) {
+                it(vec.name + " should fail without Web Crypto", async function () {
+                    withoutWebCrypto()
+                    const d = new Decrypter()
+                    d.addIdentity(vec.meta.identity)
+                    await expect(d.decrypt(vec.body)).rejects.toThrow()
+                })
+            }
         }
     }
 })
+
+function withoutWebCrypto() {
+    forceWebCryptoOff(true)
+    onTestFinished(() => { forceWebCryptoOff(false) })
+}
 
 function findSeparator(data: Uint8Array): number {
     for (let i = 0; i < data.length; i++) {
