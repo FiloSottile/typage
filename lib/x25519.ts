@@ -23,13 +23,13 @@ export const isX25519Supported = (() => {
 
 export async function scalarMult(scalar: Uint8Array | CryptoKey, u: Uint8Array): Promise<Uint8Array> {
     if (!(await isX25519Supported()) || webCryptoOff) {
-        if (scalar instanceof CryptoKey) {
+        if (isCryptoKey(scalar)) {
             throw new Error("CryptoKey provided but X25519 WebCrypto is not supported")
         }
         return x25519.scalarMult(scalar, u)
     }
     let key: CryptoKey
-    if (scalar instanceof CryptoKey) {
+    if (isCryptoKey(scalar)) {
         key = scalar
     } else {
         key = await importX25519Key(scalar)
@@ -42,7 +42,7 @@ export async function scalarMult(scalar: Uint8Array | CryptoKey, u: Uint8Array):
 
 export async function scalarMultBase(scalar: Uint8Array | CryptoKey): Promise<Uint8Array> {
     if (!(await isX25519Supported()) || webCryptoOff) {
-        if (scalar instanceof CryptoKey) {
+        if (isCryptoKey(scalar)) {
             throw new Error("CryptoKey provided but X25519 WebCrypto is not supported")
         }
         return x25519.scalarMultBase(scalar)
@@ -72,4 +72,8 @@ async function importX25519Key(key: Uint8Array): Promise<CryptoKey> {
     // Annoingly, importKey (at least on Node.js) computes the public key, which
     // is a waste if we're only going to run deriveBits.
     return crypto.subtle.importKey("pkcs8", pkcs8, { name: "X25519" }, exportable, ["deriveBits"])
+}
+
+function isCryptoKey(key: unknown): key is CryptoKey {
+    return typeof CryptoKey !== "undefined" && key instanceof CryptoKey
 }

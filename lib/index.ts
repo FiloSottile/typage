@@ -16,7 +16,7 @@ export function generateIdentity(): Promise<string> {
 
 export async function identityToRecipient(identity: string | CryptoKey): Promise<string> {
   let scalar: Uint8Array | CryptoKey
-  if (identity instanceof CryptoKey) {
+  if (isCryptoKey(identity)) {
     scalar = identity
   } else {
     const res = bech32.decodeToBytes(identity)
@@ -99,7 +99,7 @@ export class Decrypter {
   }
 
   addIdentity(s: string | CryptoKey): void {
-    if (s instanceof CryptoKey) {
+    if (isCryptoKey(s)) {
       this.identities.push({
         identity: s,
         recipient: x25519.scalarMultBase(s),
@@ -171,4 +171,8 @@ function compareBytes(a: Uint8Array, b: Uint8Array): boolean {
     acc |= a[i] ^ b[i]
   }
   return acc === 0
+}
+
+function isCryptoKey(key: unknown): key is CryptoKey {
+  return typeof CryptoKey !== "undefined" && key instanceof CryptoKey
 }
