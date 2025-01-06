@@ -21,7 +21,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-      - run: npm install
+      - run: npm update
       - run: npm run build
       - run: npm run lint
       - run: npm run test
@@ -34,7 +34,7 @@ jobs:
       - uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-      - run: bun install
+      - run: bun update --no-save
       - run: bun run build
       - run: bun run test:short
       - run: bun run examples:bun
