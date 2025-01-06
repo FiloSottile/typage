@@ -1,6 +1,6 @@
 {
     "name": "age-encryption",
-    "version": "0.2.0",
+    "version": "0.2.0-rc.0",
     "main": "dist/index.js",
     "files": [
         "dist/"
