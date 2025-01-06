@@ -12,9 +12,9 @@ jobs:
     strategy:
       matrix:
         node-version:
-          - 18.x # Maintenance LTS as of 2024-07
-          - 20.x # Active LTS as of 2024-07
-          - 22.4.x # Current as of 2024-07, npm/cli#7657
+          - 18.x # Maintenance LTS as of 2025-01
+          - 20.x # Maintenance LTS as of 2025-01
+          - 22.x # Active LTS as of 2025-01
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
