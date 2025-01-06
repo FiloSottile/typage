@@ -14,9 +14,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20.x
-      - run: npm install
+      - run: npm clean-install
       - run: npm run build
-      - run: npx --yes esbuild@0.20.1 --target=es6 --bundle --minify
+      - run: node_modules/.bin/esbuild --target=es6 --bundle --minify \
           --outfile=age-esbuild.js --global-name=age .
       - uses: actions/upload-artifact@v4
         with:
