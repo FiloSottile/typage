@@ -6,8 +6,11 @@
     </picture>
 </p>
 
-[`age-encryption`](https://www.npmjs.com/package/age-encryption) is a TypeScript implementation of the
-[age](https://age-encryption.org) file encryption format.
+[`age-encryption`](https://www.npmjs.com/package/age-encryption) is a TypeScript
+implementation of the [age](https://age-encryption.org) file encryption format.
+
+It depends only on the [noble](https://paulmillr.com/noble/) cryptography
+libraries, and uses the Web Crypto API when available.
 
 ## Installation
 
@@ -18,9 +21,6 @@ npm install age-encryption
 ## Usage
 
 `age-encryption` is a modern ES Module, compatible with Node.js and Bun, with built-in types.
-
-> [!WARNING]
-> The examples below refer to version 0.2.0, which has not been published yet.
 
 #### Encrypt and decrypt a file with a new recipient / identity pair
 
