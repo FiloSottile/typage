@@ -33,7 +33,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: age-esbuild
-      - run: gh release upload "$VERSION" "typage.js#age-${VERSION#v}.min.js"
+      - run: gh release upload -R FiloSottile/typage "$VERSION" "typage.js#age-${VERSION#v}.min.js"
         env:
           VERSION: ${{ github.event.release.tag_name }}
           GH_TOKEN: ${{ github.token }}
