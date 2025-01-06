@@ -18,7 +18,7 @@ jobs:
           node-version: 22.x
       - run: npm clean-install
       - run: npm run build
-      - run: node_modules/.bin/esbuild --target=es6 --bundle --minify --outdir=esbuild --global-name=age .
+      - run: node_modules/.bin/esbuild --target=es6 --bundle --minify --outfile=typage.js --global-name=age age-encryption
       - uses: actions/upload-artifact@v4
         with:
           name: age-esbuild

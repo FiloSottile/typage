@@ -1,7 +1,6 @@
 {
     "name": "age-encryption",
     "version": "0.2.0",
-    "main": "dist/index.js",
     "files": [
         "dist/"
     ],
@@ -10,6 +9,9 @@
         "url": "git+https://github.com/FiloSottile/typage.git"
     },
     "type": "module",
+    "exports": {
+        ".": "./dist/index.js"
+    },
     "types": "./dist/index.d.ts",
     "keywords": [
         "age",
