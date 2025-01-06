@@ -35,3 +35,18 @@ jobs:
         env:
           VERSION: ${{ github.event.release.tag_name }}
           GH_TOKEN: ${{ github.token }}
+  publish:
+    if: github.event_name == 'release'
+    permissions:
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          registry-url: "https://registry.npmjs.org"
+      - run: npm clean-install
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
