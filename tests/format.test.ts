@@ -14,16 +14,16 @@ this is the payload`
 describe("parseHeader", () => {
     it("should parse a well formatted header", () => {
         const h = parseHeader(from_string(exampleHeader))
-        assert.equal(h.recipients.length, 1)
-        assert.deepEqual(h.recipients[0].args, ["X25519", "abc"])
-        assert.deepEqual(h.recipients[0].body, base64nopad.decode("0OrTkKHpE7klNLd0k+9Uam5hkQkzMxaqKcIPRIO1sNE"))
+        assert.equal(h.stanzas.length, 1)
+        assert.deepEqual(h.stanzas[0].args, ["X25519", "abc"])
+        assert.deepEqual(h.stanzas[0].body, base64nopad.decode("0OrTkKHpE7klNLd0k+9Uam5hkQkzMxaqKcIPRIO1sNE"))
         assert.deepEqual(h.MAC, base64nopad.decode("gxhoSa5BciRDt8lOpYNcx4EYtKpS0CJ06F3ZwN82VaM"))
         assert.deepEqual(h.rest, from_string("this is the payload"))
     })
     it("should reencode to the original header", () => {
         const h = parseHeader(from_string(exampleHeader))
-        assert.deepEqual(encodeHeaderNoMAC(h.recipients), h.headerNoMAC)
-        const got = to_string(encodeHeader(h.recipients, h.MAC)) + to_string(h.rest)
+        assert.deepEqual(encodeHeaderNoMAC(h.stanzas), h.headerNoMAC)
+        const got = to_string(encodeHeader(h.stanzas, h.MAC)) + to_string(h.rest)
         assert.deepEqual(got, exampleHeader)
     })
 })

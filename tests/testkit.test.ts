@@ -72,8 +72,8 @@ describe("CCTV testkit", async function () {
             }
             it(vec.name + " should round-trip header encoding", function () {
                 const h = parseHeader(vec.body)
-                assert.deepEqual(encodeHeaderNoMAC(h.recipients), h.headerNoMAC)
-                const hh = encodeHeader(h.recipients, h.MAC)
+                assert.deepEqual(encodeHeaderNoMAC(h.stanzas), h.headerNoMAC)
+                const hh = encodeHeader(h.stanzas, h.MAC)
                 const got = new Uint8Array(hh.length + h.rest.length)
                 got.set(hh)
                 got.set(h.rest, hh.length)

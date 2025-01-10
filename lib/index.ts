@@ -1,40 +1,27 @@
-import { bech32 } from "@scure/base"
 import { hmac } from "@noble/hashes/hmac"
 import { hkdf } from "@noble/hashes/hkdf"
 import { sha256 } from "@noble/hashes/sha256"
 import { randomBytes } from "@noble/hashes/utils"
-import * as x25519 from "./x25519.js"
-import { scryptUnwrap, scryptWrap, x25519Identity, x25519Unwrap, x25519Wrap } from "./recipients.js"
+import { ScryptIdentity, ScryptRecipient, X25519Identity, X25519Recipient } from "./recipients.js"
 import { encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./format.js"
 import { decryptSTREAM, encryptSTREAM } from "./stream.js"
 
-export function generateIdentity(): Promise<string> {
-  const scalar = randomBytes(32)
-  const identity = bech32.encode("AGE-SECRET-KEY-", bech32.toWords(scalar)).toUpperCase()
-  return Promise.resolve(identity)
+export { Stanza }
+
+export interface Identity {
+  unwrapFileKey(stanzas: Stanza[]): Uint8Array | null | Promise<Uint8Array | null>;
 }
 
-export async function identityToRecipient(identity: string | CryptoKey): Promise<string> {
-  let scalar: Uint8Array | CryptoKey
-  if (isCryptoKey(identity)) {
-    scalar = identity
-  } else {
-    const res = bech32.decodeToBytes(identity)
-    if (!identity.startsWith("AGE-SECRET-KEY-1") ||
-      res.prefix.toUpperCase() !== "AGE-SECRET-KEY-" ||
-      res.bytes.length !== 32)
-      throw Error("invalid identity")
-    scalar = res.bytes
-  }
-
-  const recipient = await x25519.scalarMultBase(scalar)
-  return bech32.encode("age", bech32.toWords(recipient))
+export interface Recipient {
+  wrapFileKey(fileKey: Uint8Array): Stanza[] | Promise<Stanza[]>;
 }
+
+export { generateIdentity, identityToRecipient } from "./recipients.js"
 
 export class Encrypter {
   private passphrase: string | null = null
   private scryptWorkFactor = 18
-  private recipients: Uint8Array[] = []
+  private recipients: Recipient[] = []
 
   setPassphrase(s: string): void {
     if (this.passphrase !== null)
@@ -48,15 +35,15 @@ export class Encrypter {
     this.scryptWorkFactor = logN
   }
 
-  addRecipient(s: string): void {
+  addRecipient(s: string | Recipient): void {
     if (this.passphrase !== null)
       throw new Error("can't encrypt to both recipients and passphrases")
-    const res = bech32.decodeToBytes(s)
-    if (!s.startsWith("age1") ||
-      res.prefix.toLowerCase() !== "age" ||
-      res.bytes.length !== 32)
-      throw Error("invalid recipient")
-    this.recipients.push(res.bytes)
+
+    if (typeof s === "string") {
+      this.recipients.push(new X25519Recipient(s))
+    } else {
+      this.recipients.push(s)
+    }
   }
 
   async encrypt(file: Uint8Array | string): Promise<Uint8Array> {
@@ -67,11 +54,12 @@ export class Encrypter {
     const fileKey = randomBytes(16)
     const stanzas: Stanza[] = []
 
-    for (const recipient of this.recipients) {
-      stanzas.push(await x25519Wrap(fileKey, recipient))
-    }
+    let recipients = this.recipients
     if (this.passphrase !== null) {
-      stanzas.push(scryptWrap(fileKey, this.passphrase, this.scryptWorkFactor))
+      recipients = [new ScryptRecipient(this.passphrase, this.scryptWorkFactor)]
+    }
+    for (const recipient of recipients) {
+      stanzas.push(...await recipient.wrapFileKey(fileKey))
     }
 
     const hmacKey = hkdf(sha256, fileKey, undefined, "header", 32)
@@ -91,37 +79,25 @@ export class Encrypter {
 }
 
 export class Decrypter {
-  private passphrases: string[] = []
-  private identities: x25519Identity[] = []
+  private identities: Identity[] = []
 
   addPassphrase(s: string): void {
-    this.passphrases.push(s)
+    this.identities.push(new ScryptIdentity(s))
   }
 
-  addIdentity(s: string | CryptoKey): void {
-    if (isCryptoKey(s)) {
-      this.identities.push({
-        identity: s,
-        recipient: x25519.scalarMultBase(s),
-      })
-      return
+  addIdentity(s: string | CryptoKey | Identity): void {
+    if (typeof s === "string" || isCryptoKey(s)) {
+      this.identities.push(new X25519Identity(s))
+    } else {
+      this.identities.push(s)
     }
-    const res = bech32.decodeToBytes(s)
-    if (!s.startsWith("AGE-SECRET-KEY-1") ||
-      res.prefix.toUpperCase() !== "AGE-SECRET-KEY-" ||
-      res.bytes.length !== 32)
-      throw Error("invalid identity")
-    this.identities.push({
-      identity: res.bytes,
-      recipient: x25519.scalarMultBase(res.bytes),
-    })
   }
 
   async decrypt(file: Uint8Array, outputFormat?: "uint8array"): Promise<Uint8Array>
   async decrypt(file: Uint8Array, outputFormat: "text"): Promise<string>
   async decrypt(file: Uint8Array, outputFormat?: "text" | "uint8array"): Promise<string | Uint8Array> {
     const h = parseHeader(file)
-    const fileKey = await this.unwrapFileKey(h.recipients)
+    const fileKey = await this.unwrapFileKey(h.stanzas)
     if (fileKey === null) {
       throw Error("no identity matched any of the file's recipients")
     }
@@ -141,24 +117,10 @@ export class Decrypter {
     return out
   }
 
-  private async unwrapFileKey(recipients: Stanza[]): Promise<Uint8Array | null> {
-    for (const s of recipients) {
-      // Ideally this should be implemented by passing all stanzas to the scrypt
-      // identity implementation, and letting it throw the error. In practice,
-      // this is a very simple implementation with no public identity interface.
-      if (s.args.length > 0 && s.args[0] === "scrypt" && recipients.length !== 1) {
-        throw Error("scrypt recipient is not the only one in the header")
-      }
-
-      for (const p of this.passphrases) {
-        const k = scryptUnwrap(s, p)
-        if (k !== null) { return k }
-      }
-
-      for (const i of this.identities) {
-        const k = await x25519Unwrap(s, i)
-        if (k !== null) { return k }
-      }
+  private async unwrapFileKey(stanzas: Stanza[]): Promise<Uint8Array | null> {
+    for (const identity of this.identities) {
+      const fileKey = await identity.unwrapFileKey(stanzas)
+      if (fileKey !== null) return fileKey
     }
     return null
   }

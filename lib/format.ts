@@ -98,7 +98,7 @@ function flattenArray(arr: Uint8Array[]): Uint8Array {
 }
 
 export function parseHeader(header: Uint8Array): {
-    recipients: Stanza[], MAC: Uint8Array, headerNoMAC: Uint8Array, rest: Uint8Array
+    stanzas: Stanza[], MAC: Uint8Array, headerNoMAC: Uint8Array, rest: Uint8Array
 } {
     const hdr = new ByteReader(header)
     const versionLine = hdr.readLine()
@@ -107,11 +107,11 @@ export function parseHeader(header: Uint8Array): {
     }
     let rest = hdr.rest()
 
-    const recipients: Stanza[] = []
+    const stanzas: Stanza[] = []
     for (; ;) {
         let s: Stanza
         [s, rest] = parseNextStanza(rest)
-        recipients.push(s)
+        stanzas.push(s)
 
         const hdr = new ByteReader(rest)
         if (hdr.readString(4) === "--- ") {
@@ -123,7 +123,7 @@ export function parseHeader(header: Uint8Array): {
             const mac = base64nopad.decode(macLine)
 
             return {
-                recipients: recipients,
+                stanzas: stanzas,
                 headerNoMAC: headerNoMAC,
                 MAC: mac,
                 rest: hdr.rest(),
