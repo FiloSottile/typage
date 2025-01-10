@@ -8,11 +8,12 @@
         "test:node": "node identity.js && node passphrase.js",
         "test:bun": "bun run identity.js && bun run passphrase.js",
         "build:esbuild": "esbuild --target=es6 --bundle --minify --outfile=age.js --global-name=age age-encryption",
-        "test:esbuild": "npm run build:esbuild && node browser.js"
+        "install:esbuild": "npx puppeteer browsers install chrome",
+        "test:esbuild": "npm run build:esbuild && npm run install:esbuild && node browser.js"
     },
     "devDependencies": {
         "esbuild": "*",
-        "express": "4.18.2",
-        "puppeteer": "21.5.0"
+        "express": "4.21.2",
+        "puppeteer": "24.0.0"
     }
 }

@@ -28,6 +28,7 @@ jobs:
       - run: npm run lint
       - run: npm run test
       - run: npm run examples:node
+      - run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
       - run: npm run examples:esbuild
   bun:
     runs-on: ubuntu-latest
