@@ -54,10 +54,8 @@ describe("CCTV testkit", async function () {
         if (vec.meta.expect === "success") {
             it(vec.name + " should succeed", async function () {
                 const d = new Decrypter()
-                if (vec.meta.passphrase)
-                    d.addPassphrase(vec.meta.passphrase)
-                if (vec.meta.identity)
-                    d.addIdentity(vec.meta.identity)
+                if (vec.meta.passphrase) d.addPassphrase(vec.meta.passphrase)
+                if (vec.meta.identity) d.addIdentity(vec.meta.identity)
                 const plaintext = await d.decrypt(vec.body)
                 assert.equal(hex.encode(sha256(plaintext)), vec.meta.payload)
             })
@@ -90,10 +88,8 @@ describe("CCTV testkit", async function () {
         } else {
             it(vec.name + " should fail", async function () {
                 const d = new Decrypter()
-                if (vec.meta.passphrase)
-                    d.addPassphrase(vec.meta.passphrase)
-                if (vec.meta.identity)
-                    d.addIdentity(vec.meta.identity)
+                if (vec.meta.passphrase) d.addPassphrase(vec.meta.passphrase)
+                if (vec.meta.identity) d.addIdentity(vec.meta.identity)
                 await expect(d.decrypt(vec.body)).rejects.toThrow()
             })
             if (vec.meta.identity) {
@@ -115,8 +111,9 @@ function withoutWebCrypto() {
 
 function findSeparator(data: Uint8Array): number {
     for (let i = 0; i < data.length; i++) {
-        if (data[i] === 0x0A && data[i + 1] === 0x0A)
+        if (data[i] === 0x0A && data[i + 1] === 0x0A) {
             return i
+        }
     }
     return -1
 }

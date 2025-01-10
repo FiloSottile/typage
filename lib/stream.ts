@@ -31,10 +31,12 @@ export function decryptSTREAM(key: Uint8Array, ciphertext: Uint8Array): Uint8Arr
     streamNonce[11] = 1 // Last chunk flag.
     const chunk = chacha20poly1305(key, streamNonce).decrypt(ciphertext)
     plaintextSlice.set(chunk)
-    if (chunk.length === 0 && plaintext.length !== 0)
+    if (chunk.length === 0 && plaintext.length !== 0) {
         throw Error("empty final chunk")
-    if (plaintextSlice.length !== chunk.length)
+    }
+    if (plaintextSlice.length !== chunk.length) {
         throw Error("stream: internal error: didn't fill expected plaintext buffer")
+    }
 
     return plaintext
 }
@@ -65,8 +67,9 @@ export function encryptSTREAM(key: Uint8Array, plaintext: Uint8Array): Uint8Arra
     streamNonce[11] = 1 // Last chunk flag.
     const chunk = chacha20poly1305(key, streamNonce).encrypt(plaintext)
     ciphertextSlice.set(chunk)
-    if (ciphertextSlice.length !== chunk.length)
+    if (ciphertextSlice.length !== chunk.length) {
         throw Error("stream: internal error: didn't fill expected ciphertext buffer")
+    }
 
     return ciphertext
 }

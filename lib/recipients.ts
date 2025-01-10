@@ -23,8 +23,7 @@ export async function identityToRecipient(identity: string | CryptoKey): Promise
         const res = bech32.decodeToBytes(identity)
         if (!identity.startsWith("AGE-SECRET-KEY-1") ||
             res.prefix.toUpperCase() !== "AGE-SECRET-KEY-" ||
-            res.bytes.length !== 32)
-            throw Error("invalid identity")
+            res.bytes.length !== 32) { throw Error("invalid identity") }
         scalar = res.bytes
     }
 
@@ -39,8 +38,7 @@ export class X25519Recipient implements Recipient {
         const res = bech32.decodeToBytes(s)
         if (!s.startsWith("age1") ||
             res.prefix.toLowerCase() !== "age" ||
-            res.bytes.length !== 32)
-            throw Error("invalid recipient")
+            res.bytes.length !== 32) { throw Error("invalid recipient") }
         this.recipient = res.bytes
     }
 
@@ -71,8 +69,7 @@ export class X25519Identity implements Identity {
         const res = bech32.decodeToBytes(s)
         if (!s.startsWith("AGE-SECRET-KEY-1") ||
             res.prefix.toUpperCase() !== "AGE-SECRET-KEY-" ||
-            res.bytes.length !== 32)
-            throw Error("invalid identity")
+            res.bytes.length !== 32) { throw Error("invalid identity") }
         this.identity = res.bytes
         this.recipient = x25519.scalarMultBase(res.bytes)
     }

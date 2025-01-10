@@ -19,6 +19,9 @@ module.exports = {
     rules: {
         '@stylistic/semi': ["error", "never"],
         '@stylistic/quotes': ["error", "double"],
+        "@stylistic/brace-style": ["error", "1tbs", { "allowSingleLine": true }],
+        "@stylistic/indent": ["error", 4],
+        'curly': ["error", "multi-line"],
 
         'eqeqeq': "error",
         'no-var': "error",
