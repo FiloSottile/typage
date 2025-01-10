@@ -98,3 +98,26 @@ Then, you can use it like this
 })()
 </script>
 ```
+
+### Web Crypto identities
+
+You can use a CryptoKey as an identity. It must have an `algorithm` of `X25519`,
+and support the `deriveBits` key usage. It doesn't need to be extractable.
+
+```ts
+const keyPair = await crypto.subtle.generateKey({ name: "X25519" }, false, ["deriveBits"])
+const identity = (keyPair as CryptoKeyPair).privateKey
+const recipient = await age.identityToRecipient(identity)
+
+const recipient = await age.identityToRecipient(identity)
+console.log(recipient)
+
+const e = new age.Encrypter()
+e.addRecipient(recipient)
+const file = await e.encrypt("age")
+
+const d = new age.Decrypter()
+d.addIdentity(identity)
+const out = await d.decrypt(file, "text")
+console.log(out)
+```

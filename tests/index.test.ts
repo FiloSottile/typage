@@ -77,16 +77,16 @@ describe("AgeEncrypter", function () {
             return
         }
 
-        const cryptoKey = await crypto.subtle.generateKey({ name: "X25519" }, false, ["deriveBits"])
-        if (cryptoKey instanceof CryptoKey) throw new Error("expected a CryptoKeyPair")
-        const recipient = await identityToRecipient(cryptoKey.privateKey)
+        const keyPair = await crypto.subtle.generateKey({ name: "X25519" }, false, ["deriveBits"])
+        const identity = (keyPair as CryptoKeyPair).privateKey
+        const recipient = await identityToRecipient(identity)
 
         const e = new Encrypter()
         e.addRecipient(recipient)
         const file = await e.encrypt("age")
 
         const d = new Decrypter()
-        d.addIdentity(cryptoKey.privateKey)
+        d.addIdentity(identity)
         const out = await d.decrypt(file, "text")
 
         assert.deepEqual(out, "age")
