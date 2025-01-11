@@ -8,6 +8,8 @@ import { decryptSTREAM, encryptSTREAM } from "./stream.js"
 
 export * as armor from "./armor.js"
 
+export * as webauthn from "./webauthn.js"
+
 export { Stanza }
 
 /**
