@@ -18,7 +18,7 @@ import { Identity, Recipient } from "./index.js"
  */
 export function generateIdentity(): Promise<string> {
     const scalar = randomBytes(32)
-    const identity = bech32.encode("AGE-SECRET-KEY-", bech32.toWords(scalar)).toUpperCase()
+    const identity = bech32.encodeFromBytes("AGE-SECRET-KEY-", scalar).toUpperCase()
     return Promise.resolve(identity)
 }
 
@@ -49,7 +49,7 @@ export async function identityToRecipient(identity: string | CryptoKey): Promise
     }
 
     const recipient = await x25519.scalarMultBase(scalar)
-    return bech32.encode("age", bech32.toWords(recipient))
+    return bech32.encodeFromBytes("age", recipient)
 }
 
 export class X25519Recipient implements Recipient {
@@ -188,12 +188,12 @@ export class ScryptIdentity implements Identity {
     }
 }
 
-function encryptFileKey(fileKey: Uint8Array, key: Uint8Array): Uint8Array {
+export function encryptFileKey(fileKey: Uint8Array, key: Uint8Array): Uint8Array {
     const nonce = new Uint8Array(12)
     return chacha20poly1305(key, nonce).encrypt(fileKey)
 }
 
-function decryptFileKey(body: Uint8Array, key: Uint8Array): Uint8Array | null {
+export function decryptFileKey(body: Uint8Array, key: Uint8Array): Uint8Array | null {
     if (body.length !== 32) {
         throw Error("invalid stanza")
     }

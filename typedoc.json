@@ -5,5 +5,6 @@
     "out": "docs",
     "readme": "none",
     "tsconfig": "tsconfig.build.json",
+    "excludeProtected": true,
     "validation": true
 }
