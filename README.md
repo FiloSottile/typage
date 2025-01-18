@@ -20,7 +20,8 @@ npm install age-encryption
 
 ## Usage
 
-`age-encryption` is a modern ES Module, compatible with Node.js and Bun, with built-in types.
+`age-encryption` is a modern ES Module with built-in types.
+It's compiled for ES2022, compatible with Node.js 18+, Bun, and all recent browsers.
 
 #### Encrypt and decrypt a file with a new recipient / identity pair
 
@@ -65,7 +66,7 @@ To produce a classic library file that sets `age` as a global variable, you can 
 
 ```sh
 cd "$(mktemp -d)" && npm init -y && npm install esbuild age-encryption
-npx esbuild --target=es6 --bundle --minify --outfile=age.js --global-name=age age-encryption
+npx esbuild --target=es2022 --bundle --minify --outfile=age.js --global-name=age age-encryption
 ```
 
 or download a pre-built one from the [Releases page](https://github.com/FiloSottile/typage/releases).

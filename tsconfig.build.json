@@ -4,8 +4,11 @@
         "lib"
     ],
     "compilerOptions": {
-        "target": "ES6",
         "outDir": "dist",
         "declaration": true,
+        // Node 18, Maintenance LTS as of 2025-01
+        // https://github.com/microsoft/TypeScript/wiki/Node-Target-Mapping#node-18
+        "target": "ES2022",
+        "module": "Node16",
     },
 }
