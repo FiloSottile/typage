@@ -1,0 +1,9 @@
+{
+    "plugin": [
+        "typedoc-plugin-markdown"
+    ],
+    "out": "docs",
+    "readme": "none",
+    "tsconfig": "tsconfig.build.json",
+    "validation": true
+}

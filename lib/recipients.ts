@@ -9,12 +9,33 @@ import * as x25519 from "./x25519.js"
 import { Stanza } from "./format.js"
 import { Identity, Recipient } from "./index.js"
 
+/**
+ * Generate a new native age identity.
+ *
+ * @returns A promise that resolves to the new identity, a string starting with
+ * `AGE-SECRET-KEY-1...`. Use {@link identityToRecipient} to produce the
+ * corresponding recipient.
+ */
 export function generateIdentity(): Promise<string> {
     const scalar = randomBytes(32)
     const identity = bech32.encode("AGE-SECRET-KEY-", bech32.toWords(scalar)).toUpperCase()
     return Promise.resolve(identity)
 }
 
+/**
+ * Convert an age identity to a recipient.
+ *
+ * @param identity - An age identity, a string starting with
+ * `AGE-SECRET-KEY-1...` or an X25519 private
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/CryptoKey | CryptoKey}
+ * object.
+ *
+ * @returns A promise that resolves to the corresponding recipient, a string
+ * starting with `age1...`.
+ *
+ * @see {@link generateIdentity}
+ * @see {@link Decrypter.addIdentity}
+ */
 export async function identityToRecipient(identity: string | CryptoKey): Promise<string> {
     let scalar: Uint8Array | CryptoKey
     if (isCryptoKey(identity)) {

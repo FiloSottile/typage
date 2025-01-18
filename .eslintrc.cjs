@@ -9,7 +9,7 @@ module.exports = {
         'plugin:@typescript-eslint/strict-type-checked',
         'plugin:@typescript-eslint/stylistic-type-checked',
     ],
-    plugins: ['@typescript-eslint', '@stylistic'],
+    plugins: ['@typescript-eslint', '@stylistic', 'tsdoc'],
     parser: '@typescript-eslint/parser',
     parserOptions: {
         project: true,
@@ -29,5 +29,7 @@ module.exports = {
 
         'no-constant-binary-expression': "error",
         'no-self-compare': "error",
+
+        'tsdoc/syntax': "error",
     },
 };

@@ -33,6 +33,7 @@
         "bench": "vitest bench --run",
         "lint": "eslint .",
         "build": "tsc -p tsconfig.build.json",
+        "docs": "typedoc",
         "prepublishOnly": "npm run build"
     },
     "devDependencies": {
@@ -44,6 +45,9 @@
         "@vitest/browser": "2.1.8",
         "esbuild": "0.24.2",
         "eslint": "8.57.1",
+        "eslint-plugin-tsdoc": "0.4.0",
+        "typedoc": "0.27.6",
+        "typedoc-plugin-markdown": "4.4.1",
         "typescript": "5.7.2",
         "vitest": "2.1.8",
         "webdriverio": "9.5.1"

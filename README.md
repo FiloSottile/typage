@@ -22,6 +22,8 @@ npm install age-encryption
 
 `age-encryption` is a modern ES Module, compatible with Node.js and Bun, with built-in types.
 
+The whole API is [documented with TypeDoc](docs/README.md).
+
 #### Encrypt and decrypt a file with a new recipient / identity pair
 
 ```ts
@@ -121,3 +123,11 @@ d.addIdentity(identity)
 const out = await d.decrypt(file, "text")
 console.log(out)
 ```
+
+### Custom recipients and identities
+
+You can implement the `Recipient` and `Identity` interfaces to use custom types
+as recipients and identities.
+
+This lets you use use remote APIs and secrets managers to wrap files keys, and
+interoperate with [age plugins](https://github.com/FiloSottile/awesome-age?tab=readme-ov-file#plugins).

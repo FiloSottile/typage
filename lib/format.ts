@@ -1,7 +1,21 @@
 import { base64nopad } from "@scure/base"
 
+/**
+ * A stanza is a section of an age header. This is part of the low-level
+ * {@link Recipient} and {@link Identity} APIs.
+ */
 export class Stanza {
+    /**
+     * All space-separated arguments on the first line of the stanza.
+     * Each argument is a string that does not contain spaces.
+     * The first argument is often a recipient type, which should look like
+     * `example.com/...` to avoid collisions.
+     */
     readonly args: string[]
+    /**
+     * The raw body of the stanza. This is automatically base64-encoded and
+     * split into lines of 48 characters each.
+     */
     readonly body: Uint8Array
 
     constructor(args: string[], body: Uint8Array) {
