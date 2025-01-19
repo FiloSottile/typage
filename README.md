@@ -43,6 +43,41 @@ const out = await d.decrypt(ciphertext, "text")
 console.log(out)
 ```
 
+### ASCII armoring
+
+age encrypted files (the inputs of `Decrypter.decrypt` and outputs of
+`Encrypter.encrypt`) are binary files, of type `Uint8Array`. There is an official ASCII
+"armor" format, based on PEM, which provides a way to encode an encrypted file as text.
+
+```ts
+import * as age from "age-encryption"
+
+const identity = await age.generateIdentity()
+const recipient = await age.identityToRecipient(identity)
+console.log(identity)
+console.log(recipient)
+
+const e = new age.Encrypter()
+e.addRecipient(recipient)
+const ciphertext = await e.encrypt("Hello, age!")
+const armored = age.armor.encode(ciphertext)
+
+console.log(armored)
+// -----BEGIN AGE ENCRYPTED FILE-----
+// YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSB0QXVkQmNwZ3ZzYnNRZDJP
+// WlFId3hyeFNmRS9SdUVUTkFhY1FXSno5VUFBClNOSWhEbnhoK21TaEs3SWRGdklw
+// OW9pdlBZbDg3SEVSQ1FZZHBvUS90YjgKLS0tIGRCVXNNWmdJS0ZkNlNZbStPZWh4
+// N2FBNUJZdTFxMmYwVTEzUWwvTFVNeUkKrNZnrZjMlXvoCHz0FUS/bp9129XtSV1Q
+// 2twDjjAOwgBtBYoji9gKWgOG4w==
+// -----END AGE ENCRYPTED FILE-----
+
+const d = new age.Decrypter()
+d.addIdentity(identity)
+const decoded = age.armor.decode(armored)
+const out = await d.decrypt(decoded, "text")
+console.log(out)
+```
+
 #### Encrypt and decrypt a file with a passphrase
 
 ```ts
@@ -108,8 +143,6 @@ and support the `deriveBits` key usage. It doesn't need to be extractable.
 ```ts
 const keyPair = await crypto.subtle.generateKey({ name: "X25519" }, false, ["deriveBits"])
 const identity = (keyPair as CryptoKeyPair).privateKey
-const recipient = await age.identityToRecipient(identity)
-
 const recipient = await age.identityToRecipient(identity)
 console.log(recipient)
 

@@ -1,15 +1,18 @@
-import { Encrypter, Decrypter, generateIdentity, identityToRecipient } from "age-encryption"
+import * as age from "age-encryption"
 
-const identity = await generateIdentity()
-const recipient = await identityToRecipient(identity)
+const identity = await age.generateIdentity()
+const recipient = await age.identityToRecipient(identity)
 console.log(identity)
 console.log(recipient)
 
-const e = new Encrypter()
+const e = new age.Encrypter()
 e.addRecipient(recipient)
 const ciphertext = await e.encrypt("Hello, age!")
+const armored = age.armor.encode(ciphertext)
+console.log(armored)
 
-const d = new Decrypter()
+const d = new age.Decrypter()
 d.addIdentity(identity)
-const out = await d.decrypt(ciphertext, "text")
+const decoded = age.armor.decode(armored)
+const out = await d.decrypt(decoded, "text")
 console.log(out)

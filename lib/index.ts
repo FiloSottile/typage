@@ -6,6 +6,8 @@ import { ScryptIdentity, ScryptRecipient, X25519Identity, X25519Recipient } from
 import { encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./format.js"
 import { decryptSTREAM, encryptSTREAM } from "./stream.js"
 
+export * as armor from "./armor.js"
+
 export { Stanza }
 
 /**
