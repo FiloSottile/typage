@@ -22,7 +22,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: age-esbuild
-          path: esbuild/typage.js
+          path: typage.js
   upload:
     if: github.event_name == 'release'
     needs: build
