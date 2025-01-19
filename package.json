@@ -37,18 +37,18 @@
         "prepublishOnly": "npm run build"
     },
     "devDependencies": {
+        "@eslint/js": "9.18.0",
         "@fast-check/vitest": "0.1.4",
-        "@stylistic/eslint-plugin": "2.12.1",
+        "@stylistic/eslint-plugin": "2.13.0",
         "@types/node": "22.10.5",
-        "@typescript-eslint/eslint-plugin": "8.19.0",
-        "@typescript-eslint/parser": "8.19.0",
         "@vitest/browser": "2.1.8",
         "esbuild": "0.24.2",
-        "eslint": "8.57.1",
+        "eslint": "9.18.0",
         "eslint-plugin-tsdoc": "0.4.0",
         "typedoc": "0.27.6",
         "typedoc-plugin-markdown": "4.4.1",
         "typescript": "5.7.2",
+        "typescript-eslint": "8.20.0",
         "vitest": "2.1.8",
         "webdriverio": "9.5.1"
     },
