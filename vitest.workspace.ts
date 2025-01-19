@@ -48,6 +48,7 @@ export default defineWorkspace([
                     readTestkitFile,
                 },
             },
+            globalSetup: "tests/setup.chrome.ts",
         },
     },
 ])
