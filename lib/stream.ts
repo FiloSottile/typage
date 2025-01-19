@@ -2,8 +2,8 @@ import { chacha20poly1305 } from "@noble/ciphers/chacha"
 
 const chacha20poly1305Overhead = 16
 
-const chunkSize = 64 * 1024
-const chunkSizeWithOverhead = chunkSize + chacha20poly1305Overhead
+const chunkSize = /* @__PURE__ */ (() => 64 * 1024)()
+const chunkSizeWithOverhead = /* @__PURE__ */ (() => chunkSize + chacha20poly1305Overhead)()
 
 export function decryptSTREAM(key: Uint8Array, ciphertext: Uint8Array): Uint8Array {
     const streamNonce = new Uint8Array(12)

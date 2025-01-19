@@ -1,4 +1,4 @@
-import { describe, it, assert, onTestFinished } from "vitest"
+import { describe, it, assert, onTestFinished, expect } from "vitest"
 import { Decrypter, Encrypter, generateIdentity, identityToRecipient } from "../lib/index.js"
 import { forceWebCryptoOff, isX25519Supported } from "../lib/x25519.js"
 import { base64nopad } from "@scure/base"
@@ -140,5 +140,21 @@ describe("AgeEncrypter", function () {
         assert.throws(() => {
             e.addRecipient("age1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl7")
         })
+    })
+})
+
+describe.skipIf(expect.getState().environment !== "node")("esbuild", function () {
+    it("should tree shake", async function () {
+        const result = await (await import("esbuild")).build({
+            stdin: {
+                // Not using "age-encryption" to load the TS files directly.
+                contents: `import * as age from "./lib/index.js"`,
+                resolveDir: __dirname + "/..",
+            },
+            bundle: true,
+            write: false,
+        })
+        assert.equal(result.outputFiles.length, 1)
+        assert.equal(result.outputFiles[0].text, "(() => {\n})();\n")
     })
 })
