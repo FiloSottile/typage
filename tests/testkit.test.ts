@@ -4,27 +4,9 @@ import { decryptSTREAM, encryptSTREAM } from "../lib/stream.js"
 import { forceWebCryptoOff } from "../lib/x25519.js"
 import { hkdf } from "@noble/hashes/hkdf"
 import { sha256 } from "@noble/hashes/sha256"
-import { hex, base64 } from "@scure/base"
+import { hex } from "@scure/base"
 import { Decrypter, armor } from "../lib/index.js"
-
-declare module "@vitest/browser/context" {
-    interface BrowserCommands {
-        listTestkitFiles: () => Promise<string[]>
-        readTestkitFile: (name: string) => Promise<string>
-    }
-}
-
-let listTestkitFiles: () => Promise<string[]>
-let readTestkitFile: (name: string) => Promise<Uint8Array>
-if (expect.getState().environment === "node") {
-    const { readdir, readFile } = await import("fs/promises")
-    listTestkitFiles = () => readdir("./tests/testkit")
-    readTestkitFile = (name) => readFile("./tests/testkit/" + name)
-} else {
-    const { commands } = await import("@vitest/browser/context")
-    listTestkitFiles = commands.listTestkitFiles
-    readTestkitFile = async (name) => base64.decode(await commands.readTestkitFile(name))
-}
+import * as testkit from "cctv-age"
 
 describe("CCTV testkit", async function () {
     interface Vector {
@@ -33,8 +15,7 @@ describe("CCTV testkit", async function () {
         body: Uint8Array,
     }
     const vectors: Vector[] = []
-    for (const name of await listTestkitFiles()) {
-        const contents = await readTestkitFile(name)
+    for (const [name, contents] of Object.entries(testkit)) {
         const sepIdx = findSeparator(contents)
         const header = new TextDecoder().decode(contents.subarray(0, sepIdx))
         const body = contents.subarray(sepIdx + 2)
@@ -45,6 +26,13 @@ describe("CCTV testkit", async function () {
         }
         if (!vector.meta.expect) {
             throw Error("no metadata found in " + name)
+        }
+        if (vector.meta.compressed === "zlib") {
+            vector.body = new Uint8Array(await new Response(
+                new Blob([vector.body]).stream().pipeThrough(new DecompressionStream("deflate"))
+            ).arrayBuffer())
+        } else if (vector.meta.compressed) {
+            throw Error("unknown compression: " + vector.meta.compressed)
         }
         vectors.push(vector)
     }
@@ -125,5 +113,5 @@ function findSeparator(data: Uint8Array): number {
             return i
         }
     }
-    return -1
+    throw Error("no separator found")
 }
