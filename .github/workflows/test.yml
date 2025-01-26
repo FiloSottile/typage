@@ -28,6 +28,17 @@ jobs:
       - run: npm run lint
       - run: npm run test
       - run: npm run examples:node
+  esbuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - run: npm update
+      - run: npm run build
       - run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
       - run: npm run examples:esbuild
   bun:
@@ -36,10 +47,27 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
       - uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-      - run: bun update --no-save
-      - run: bun run build
-      - run: bun run test:short
-      - run: bun run examples:bun
+      - run: npm update
+      - run: npm run build
+      - run: npm run examples:bun
+  deno:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: vx.x.x
+      - run: npm update
+      - run: npm run build
+      - run: npm run examples:deno
