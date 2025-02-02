@@ -1,12 +1,13 @@
 {
     "name": "age-examples",
     "type": "module",
-    "workspaces": [
-        "../.."
-    ],
+    "dependencies": {
+        "age-encryption": "file:../.."
+    },
     "scripts": {
         "test:node": "node identity.js && node passphrase.js",
         "test:bun": "bun run identity.js && bun run passphrase.js",
+        "test:deno": "deno run identity.js && deno run passphrase.js",
         "build:esbuild": "esbuild --target=es2022 --bundle --minify --outfile=age.js --global-name=age age-encryption",
         "install:esbuild": "npx puppeteer browsers install chrome",
         "test:esbuild": "npm run build:esbuild && npm run install:esbuild && node browser.js"
