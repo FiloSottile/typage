@@ -5,10 +5,10 @@ import { randomBytes } from "@noble/hashes/utils"
 import { ScryptIdentity, ScryptRecipient, X25519Identity, X25519Recipient } from "./recipients.js"
 import { encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./format.js"
 import { decryptSTREAM, encryptSTREAM } from "./stream.js"
-
+import { EncrypterTransformer } from "./transformstream.js"
 export * as armor from "./armor.js"
 
-export { Stanza }
+export { Stanza, EncrypterTransformer }
 
 /**
  * An identity that can be used to decrypt a file key.
@@ -61,7 +61,7 @@ export interface Recipient {
     wrapFileKey(fileKey: Uint8Array): Stanza[] | Promise<Stanza[]>;
 }
 
-export { generateIdentity, identityToRecipient } from "./recipients.js"
+export { generateIdentity, identityToRecipient, X25519Recipient } from "./recipients.js"
 
 /**
  * Encrypts a file using the given passphrase or recipients.
