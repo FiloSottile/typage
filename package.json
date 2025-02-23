@@ -33,6 +33,7 @@
         "examples:esbuild": "cd tests/examples && npm update && npm run test:esbuild",
         "bench": "vitest bench --run",
         "lint": "eslint .",
+        "serve": "esbuild wwwdev/index.ts --bundle --outdir=wwwdev/js --servedir=wwwdev --sourcemap",
         "build": "tsc -p tsconfig.build.json",
         "docs": "typedoc",
         "prepublishOnly": "npm run build"
