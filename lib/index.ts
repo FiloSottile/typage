@@ -4,7 +4,7 @@ import { sha256 } from "@noble/hashes/sha256"
 import { randomBytes } from "@noble/hashes/utils"
 import { ScryptIdentity, ScryptRecipient, X25519Identity, X25519Recipient } from "./recipients.js"
 import { encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./format.js"
-import { decryptSTREAM, encryptSTREAM } from "./stream.js"
+import { decryptSTREAM, encryptTransformSTREAM, encryptSTREAM } from "./stream.js"
 
 export * as armor from "./armor.js"
 
@@ -168,6 +168,44 @@ export class Encrypter {
         out.set(nonce, header.length)
         out.set(payload, header.length + nonce.length)
         return out
+    }
+
+    /**
+     * Encrypt a file using the configured passphrase or recipients using 
+     * the Streams API.
+     * 
+     * @param plaintextSize - The size of the file to encrypt.
+     *
+     * @returns An object with a key `ciphertextStream`, containing a TransformStream that encrypts the ReadableStream 
+     * and writes it to to the WritableStream, and a key `ciphertextlength`, which contains the length of the ciphertext
+     * 
+     */
+    async streamEncrypt(plaintextSize: number): Promise<{ ciphertextStream: TransformStream<Uint8Array, Uint8Array>, ciphertextLength: number }> {
+        const fileKey = randomBytes(16)
+        const stanzas: Stanza[] = []
+    
+        let recipients = this.recipients
+        if (this.passphrase !== null) {
+            recipients = [
+                new ScryptRecipient(this.passphrase, this.scryptWorkFactor),
+            ]
+        }
+        for (const recipient of recipients) {
+            stanzas.push(...(await recipient.wrapFileKey(fileKey)))
+        }
+    
+        const hmacKey = hkdf(sha256, fileKey, undefined, "header", 32)
+        const mac = hmac(sha256, hmacKey, encodeHeaderNoMAC(stanzas))
+        const header = encodeHeader(stanzas, mac)
+    
+        const nonce = randomBytes(16)
+        const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
+    
+        const out = new Uint8Array(header.length + nonce.length)
+        out.set(header)
+        out.set(nonce, header.length)
+    
+        return encryptTransformSTREAM(streamKey, plaintextSize, out)
     }
 }
 

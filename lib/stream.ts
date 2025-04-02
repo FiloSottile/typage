@@ -73,3 +73,55 @@ export function encryptSTREAM(key: Uint8Array, plaintext: Uint8Array): Uint8Arra
 
     return ciphertext
 }
+
+export function encryptTransformSTREAM(key: Uint8Array, plaintextLength: number, headerAndNonce: Uint8Array): { ciphertextStream: TransformStream<Uint8Array, Uint8Array>; ciphertextLength: number } {
+    const streamNonce = new Uint8Array(12)
+    const incNonce = () => {
+        for (let i = streamNonce.length - 2; i >= 0; i--) {
+            streamNonce[i]++
+            if (streamNonce[i] !== 0) break
+        }
+    }
+
+    const chunkCount = plaintextLength === 0 ? 1 : Math.ceil(plaintextLength / chunkSize)
+    const overhead = chunkCount * chacha20poly1305Overhead
+    const ciphertextLength = plaintextLength + overhead
+
+    const plaintextBuffer = new Uint8Array(chunkSize)
+    const lastChunkSize = plaintextLength % chunkSize
+    let bufferUsed = 0
+
+    const ciphertextStream = new TransformStream({
+        start(controller) {
+            controller.enqueue(headerAndNonce)
+        },
+        transform(chunk, controller) {
+            let chunkOffset = 0
+            while (chunkOffset < chunk.length) {
+                const bytesAvailable = plaintextBuffer.length - bufferUsed
+                const bytesToCopy = Math.min(bytesAvailable, chunk.length - chunkOffset)
+                plaintextBuffer.set(chunk.subarray(chunkOffset, chunkOffset + bytesToCopy), bufferUsed)
+                bufferUsed += bytesToCopy
+                chunkOffset += bytesToCopy
+                if (bufferUsed === plaintextBuffer.length) {
+                    if (lastChunkSize === 0) {
+                        streamNonce[11] = 1 // Last chunk flag in rare cases where plaintextLength % chunkSizeWithOverhead == 0
+                    }
+                    const encryptedChunk = chacha20poly1305(key, streamNonce).encrypt(plaintextBuffer)
+                    controller.enqueue(encryptedChunk)
+                    incNonce()
+                    bufferUsed = 0
+                }
+            }
+        },
+        flush(controller) {
+            if (bufferUsed > 0) {
+                streamNonce[11] = 1 // Last chunk flag.
+                const encryptedChunk = chacha20poly1305(key, streamNonce).encrypt(plaintextBuffer.subarray(0, bufferUsed))
+                controller.enqueue(encryptedChunk)
+            }
+        },
+    })
+
+    return { ciphertextStream, ciphertextLength: ciphertextLength }
+}
