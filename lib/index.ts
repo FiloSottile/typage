@@ -4,7 +4,7 @@ import { sha256 } from "@noble/hashes/sha256"
 import { randomBytes } from "@noble/hashes/utils"
 import { ScryptIdentity, ScryptRecipient, X25519Identity, X25519Recipient } from "./recipients.js"
 import { encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./format.js"
-import { decryptSTREAM, encryptTransformSTREAM, encryptSTREAM } from "./stream.js"
+import { decryptSTREAM, encryptTransformSTREAM, encryptSTREAM, decryptTransformSTREAM } from "./stream.js"
 
 export * as armor from "./armor.js"
 
@@ -292,6 +292,35 @@ export class Decrypter {
         const out = decryptSTREAM(streamKey, payload)
         if (outputFormat === "text") return new TextDecoder().decode(out)
         return out
+    }
+
+    /**
+     * Encrypt a file using the configured passphrase or recipients using 
+     * the Streams API.
+     * 
+     * @param plaintextSize - The size of the file to encrypt.
+     *
+     * @returns An object with a key `ciphertextStream`, containing a TransformStream that encrypts the ReadableStream 
+     * and writes it to to the WritableStream, and a key `ciphertextlength`, which contains the length of the ciphertext
+     * 
+     */
+    async streamDecrypt(chunk: Uint8Array, ciphertextLength: number): Promise<TransformStream<Uint8Array, Uint8Array>> {
+        const h = parseHeader(chunk)
+        const fileKey = await this.unwrapFileKey(h.stanzas)
+        if (fileKey === null) {
+            throw Error("no identity matched any of the file's recipients")
+        }
+
+        const hmacKey = hkdf(sha256, fileKey, undefined, "header", 32)
+        const mac = hmac(sha256, hmacKey, h.headerNoMAC)
+        if (!compareBytes(h.MAC, mac)) {
+            throw Error("invalid header HMAC")
+        }
+
+        const nonce = h.rest.subarray(0, 16)
+        const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
+
+        return decryptTransformSTREAM(streamKey, ciphertextLength, h.headerSize + 16)
     }
 
     private async unwrapFileKey(stanzas: Stanza[]): Promise<Uint8Array | null> {
