@@ -312,34 +312,36 @@ export class Decrypter {
     }
 
     /**
-     * Encrypt a file using the configured passphrase or recipients using 
+     * Decrypt a file using the configured passphrase or recipients using 
      * the Streams API.
      * 
-     * @param plaintextSize - The size of the file to encrypt.
+     * @param ciphertextSize - The size of the ciphertext to decrypt.
      *
-     * @returns An object with a key `ciphertextStream`, containing a TransformStream that encrypts the ReadableStream 
-     * and writes it to to the WritableStream, and a key `ciphertextlength`, which contains the length of the ciphertext
+     * @returns A TransformStream that outputs the decrypted.
      * 
      */
-    async streamDecrypt(chunk: Uint8Array, ciphertextLength: number): Promise<TransformStream<Uint8Array, Uint8Array>> {
-        const h = parseHeader(chunk)
-        const fileKey = await this.unwrapFileKey(h.stanzas)
-        if (fileKey === null) {
-            throw Error("no identity matched any of the file's recipients")
+    streamDecrypt(ciphertextSize: number): TransformStream<Uint8Array, Uint8Array> {
+        const getStreamKey = async (chunk: Uint8Array): Promise<{ key: Uint8Array, payload: Uint8Array }> => {
+            const h = parseHeader(chunk)
+            const fileKey = await this.unwrapFileKey(h.stanzas)
+            if (fileKey === null) {
+                throw Error("no identity matched any of the file's recipients")
+            }
+    
+            const hmacKey = hkdf(sha256, fileKey, undefined, "header", 32)
+            const mac = hmac(sha256, hmacKey, h.headerNoMAC)
+            if (!compareBytes(h.MAC, mac)) {
+                throw Error("invalid header HMAC")
+            }
+    
+            const nonce = h.rest.subarray(0, NONCE_SIZE)
+            const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
+            return { key: streamKey, payload: h.rest.subarray(NONCE_SIZE) }
         }
 
-        const hmacKey = hkdf(sha256, fileKey, undefined, "header", 32)
-        const mac = hmac(sha256, hmacKey, h.headerNoMAC)
-        if (!compareBytes(h.MAC, mac)) {
-            throw Error("invalid header HMAC")
-        }
-
-        const nonce = h.rest.subarray(0, 16)
-        const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
-
-        return decryptTransformSTREAM(streamKey, ciphertextLength, h.headerSize + 16)
+        return decryptTransformSTREAM(ciphertextSize, getStreamKey)
     }
-
+ 
     private async unwrapFileKey(stanzas: Stanza[]): Promise<Uint8Array | null> {
         for (const identity of this.identities) {
             const fileKey = await identity.unwrapFileKey(stanzas)

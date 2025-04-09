@@ -78,7 +78,7 @@ export function encryptSTREAM(key: Uint8Array, plaintext: Uint8Array): Uint8Arra
     return ciphertext
 }
 
-export function decryptTransformSTREAM(key: Uint8Array, ciphertextLength: number, headerAndNonceLength: number): TransformStream<Uint8Array, Uint8Array> {
+export function decryptTransformSTREAM(ciphertextLength: number, getStreamKey: (chunk: Uint8Array) => Promise<{key: Uint8Array, payload: Uint8Array }>): TransformStream<Uint8Array, Uint8Array> {
     const streamNonce = new Uint8Array(12)
     const incNonce = () => {
         for (let i = streamNonce.length - 2; i >= 0; i--) {
@@ -91,12 +91,14 @@ export function decryptTransformSTREAM(key: Uint8Array, ciphertextLength: number
     const lastChunkSize = ciphertextLength % chunkSizeWithOverhead
     let bufferUsed = 0
     let isFirstChunk = true
+    let streamKey: Uint8Array
 
-    return new TransformStream({
-        start() {},
-        transform(chunk, controller) {
+    return new TransformStream<Uint8Array, Uint8Array>({
+        async transform(chunk, controller) {
             if (isFirstChunk) {
-                chunk = chunk.subarray(headerAndNonceLength, chunk.length)
+                const { key, payload } = await getStreamKey(chunk)
+                streamKey = key
+                chunk = payload
                 isFirstChunk = false
             }
             let chunkOffset = 0
@@ -110,7 +112,7 @@ export function decryptTransformSTREAM(key: Uint8Array, ciphertextLength: number
                     if (lastChunkSize === 0) {
                         streamNonce[11] = 1 // Last chunk flag in rare cases where plaintextLength % chunkSizeWithOverhead == 0
                     }
-                    const decryptedChunk = chacha20poly1305(key, streamNonce).decrypt(ciphertextBuffer)
+                    const decryptedChunk = chacha20poly1305(streamKey, streamNonce).decrypt(ciphertextBuffer)
                     controller.enqueue(decryptedChunk)
                     incNonce()
                     bufferUsed = 0
@@ -120,7 +122,7 @@ export function decryptTransformSTREAM(key: Uint8Array, ciphertextLength: number
         flush(controller) {
             if (bufferUsed > 0) {
                 streamNonce[11] = 1 // Last chunk flag.
-                const decryptedChunk = chacha20poly1305(key, streamNonce).decrypt(ciphertextBuffer.subarray(0, bufferUsed))
+                const decryptedChunk = chacha20poly1305(streamKey, streamNonce).decrypt(ciphertextBuffer.subarray(0, bufferUsed))
                 controller.enqueue(decryptedChunk)
             }
         },
