@@ -105,6 +105,101 @@ describe("AgeEncrypter", function () {
 
         assert.deepEqual(out, "age")
     })
+    it("should encrypt a file using TransformStream and decrypt normally", async function () {
+        const e = new Encrypter()
+        e.setScryptWorkFactor(12)
+        e.setPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
+        const file = new File([new TextEncoder().encode("age")], "age.txt")
+        const ciphertextStream = await e.streamEncrypt(file.size)
+        const ciphertextLength = e.getCiphertextSize(file.size)
+        const reader = file.stream().pipeThrough(ciphertextStream).getReader()
+        const ciphertext = new Uint8Array(ciphertextLength)
+        let index = 0
+        while (true) {
+            const { done, value } = await reader.read()
+            if (done) {
+                break
+            }
+            if (value) {
+                ciphertext.set(value.subarray(), index)
+                index += value.length
+            }
+        }
+        const d = new Decrypter()
+        d.addPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
+        const out = await d.decrypt(ciphertext, "text")
+        assert.deepEqual(out, "age")
+    })
+    it("should encrypt a file normally and decrypt using TransformStream", async function () {
+        const e = new Encrypter()
+        e.setScryptWorkFactor(12)
+        e.setPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
+        const file = await e.encrypt("age")
+
+        const d = new Decrypter()
+        d.addPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
+        const decryptionStream = d.streamDecrypt(file.length)
+        const blob = new Blob([file])
+        const reader = blob.stream().pipeThrough(decryptionStream).getReader()
+        let out = ""
+        while (true) {
+            const { done, value } = await reader.read()
+            if (done) {
+                break
+            }
+            if (value) {
+                out += new TextDecoder().decode(value)
+            }
+        }
+        assert.deepEqual(out, "age")
+    })
+    it("should encrypt and decrypt using TransformStream", async function () {
+        const e = new Encrypter()
+        const d = new Decrypter()
+        e.setScryptWorkFactor(12)
+        e.setPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
+        d.addPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
+        
+        const file = new File([new TextEncoder().encode("age")], "age.txt")
+        const encryptionStream = await e.streamEncrypt(file.size)
+        const ciphertextLength = e.getCiphertextSize(file.size)
+        const decryptionStream = d.streamDecrypt(ciphertextLength)
+
+        const reader = file.stream().pipeThrough(encryptionStream).pipeThrough(decryptionStream).getReader()
+        let out = ""
+        while (true) {
+            const { done, value } = await reader.read()
+            if (done) {
+                break
+            }
+            if (value) {
+                out += new TextDecoder().decode(value)
+            }
+        }
+        assert.deepEqual(out, "age")
+    })
+    it("should calculate the correct size of the ciphertext", async function () {
+        const e = new Encrypter()
+        e.setScryptWorkFactor(12)
+        e.setPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
+        const file = new File([new TextEncoder().encode("age")], "age.txt")
+        const ciphertextStream = await e.streamEncrypt(file.size)
+        const ciphertextLength = e.getCiphertextSize(file.size)
+        const reader = file.stream().pipeThrough(ciphertextStream).getReader()
+        const ciphertext = new Uint8Array(ciphertextLength)
+        let index = 0
+        while (true) {
+            const { done, value } = await reader.read()
+            if (done) {
+                break
+            }
+            if (value) {
+                ciphertext.set(value.subarray(), index)
+                index += value.length
+            }
+        }
+        assert.deepEqual(index, ciphertextLength)
+    })
     it("should throw when using multiple passphrases", function () {
         const e = new Encrypter()
         e.setPassphrase("1")
