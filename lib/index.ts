@@ -192,14 +192,14 @@ export class Encrypter {
      * 
      * @param plaintextSize - The size of the file to encrypt.
      *
-     * @returns An object with a key `ciphertextStream`, containing a TransformStream that encrypts the ReadableStream 
-     * and writes it to to the WritableStream, and a key `ciphertextlength`, which contains the length of the ciphertext
+     * @returns A TransformStream that encrypts the ReadableStream 
+     * and writes it to to the WritableStream.
      * 
      */
     async streamEncrypt(plaintextSize: number): Promise<TransformStream<Uint8Array, Uint8Array>> {
         const fileKey = randomBytes(16)
         const stanzas: Stanza[] = []
-    
+
         let recipients = this.recipients
         if (this.passphrase !== null) {
             recipients = [
@@ -209,19 +209,19 @@ export class Encrypter {
         for (const recipient of recipients) {
             stanzas.push(...(await recipient.wrapFileKey(fileKey)))
         }
-    
+
         const hmacKey = hkdf(sha256, fileKey, undefined, "header", 32)
         const mac = hmac(sha256, hmacKey, encodeHeaderNoMAC(stanzas))
         const header = encodeHeader(stanzas, mac)
         this.headerSize = header.length
-    
+
         const nonce = randomBytes(NONCE_SIZE)
         const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
-    
+
         const out = new Uint8Array(header.length + nonce.length)
         out.set(header)
         out.set(nonce, header.length)
-    
+
         return encryptTransformSTREAM(streamKey, plaintextSize, out)
     }
 }
@@ -327,13 +327,13 @@ export class Decrypter {
             if (fileKey === null) {
                 throw Error("no identity matched any of the file's recipients")
             }
-    
+
             const hmacKey = hkdf(sha256, fileKey, undefined, "header", 32)
             const mac = hmac(sha256, hmacKey, h.headerNoMAC)
             if (!compareBytes(h.MAC, mac)) {
                 throw Error("invalid header HMAC")
             }
-    
+
             const nonce = h.rest.subarray(0, NONCE_SIZE)
             const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
             return { key: streamKey, payload: h.rest.subarray(NONCE_SIZE) }
@@ -341,7 +341,7 @@ export class Decrypter {
 
         return decryptTransformSTREAM(ciphertextSize, getStreamKey)
     }
- 
+
     private async unwrapFileKey(stanzas: Stanza[]): Promise<Uint8Array | null> {
         for (const identity of this.identities) {
             const fileKey = await identity.unwrapFileKey(stanzas)
