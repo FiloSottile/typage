@@ -5,6 +5,12 @@ const chacha20poly1305Overhead = 16
 const chunkSize = /* @__PURE__ */ (() => 64 * 1024)()
 const chunkSizeWithOverhead = /* @__PURE__ */ (() => chunkSize + chacha20poly1305Overhead)()
 
+export function calculateCiphertextLength(plaintextLength: number): number {
+    const chunkCount = plaintextLength === 0 ? 1 : Math.ceil(plaintextLength / chunkSize)
+    const overhead = chunkCount * chacha20poly1305Overhead
+    return plaintextLength + overhead
+}
+
 export function decryptSTREAM(key: Uint8Array, ciphertext: Uint8Array): Uint8Array {
     const streamNonce = new Uint8Array(12)
     const incNonce = () => {
@@ -50,9 +56,7 @@ export function encryptSTREAM(key: Uint8Array, plaintext: Uint8Array): Uint8Arra
         }
     }
 
-    const chunkCount = plaintext.length === 0 ? 1 : Math.ceil(plaintext.length / chunkSize)
-    const overhead = chunkCount * chacha20poly1305Overhead
-    const ciphertext = new Uint8Array(plaintext.length + overhead)
+    const ciphertext = new Uint8Array(calculateCiphertextLength(plaintext.length))
 
     let ciphertextSlice = ciphertext
     while (plaintext.length > chunkSize) {
@@ -124,7 +128,7 @@ export function decryptTransformSTREAM(key: Uint8Array, ciphertextLength: number
 
 }
 
-export function encryptTransformSTREAM(key: Uint8Array, plaintextLength: number, headerAndNonce: Uint8Array): { ciphertextStream: TransformStream<Uint8Array, Uint8Array>; ciphertextLength: number } {
+export function encryptTransformSTREAM(key: Uint8Array, plaintextLength: number, headerAndNonce: Uint8Array): TransformStream<Uint8Array, Uint8Array> {
     const streamNonce = new Uint8Array(12)
     const incNonce = () => {
         for (let i = streamNonce.length - 2; i >= 0; i--) {
@@ -133,15 +137,11 @@ export function encryptTransformSTREAM(key: Uint8Array, plaintextLength: number,
         }
     }
 
-    const chunkCount = plaintextLength === 0 ? 1 : Math.ceil(plaintextLength / chunkSize)
-    const overhead = chunkCount * chacha20poly1305Overhead
-    const ciphertextLength = plaintextLength + overhead
-
     const plaintextBuffer = new Uint8Array(chunkSize)
     const lastChunkSize = plaintextLength % chunkSize
     let bufferUsed = 0
 
-    const ciphertextStream = new TransformStream({
+    const ciphertextStream = new TransformStream<Uint8Array, Uint8Array>({
         start(controller) {
             controller.enqueue(headerAndNonce)
         },
@@ -173,5 +173,5 @@ export function encryptTransformSTREAM(key: Uint8Array, plaintextLength: number,
         },
     })
 
-    return { ciphertextStream, ciphertextLength: ciphertextLength }
+    return ciphertextStream
 }

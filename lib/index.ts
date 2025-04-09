@@ -4,13 +4,15 @@ import { sha256 } from "@noble/hashes/sha256"
 import { randomBytes } from "@noble/hashes/utils"
 import { ScryptIdentity, ScryptRecipient, X25519Identity, X25519Recipient } from "./recipients.js"
 import { encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./format.js"
-import { decryptSTREAM, encryptTransformSTREAM, encryptSTREAM, decryptTransformSTREAM } from "./stream.js"
+import { decryptSTREAM, encryptTransformSTREAM, encryptSTREAM, decryptTransformSTREAM, calculateCiphertextLength } from "./stream.js"
 
 export * as armor from "./armor.js"
 
 export * as webauthn from "./webauthn.js"
 
 export { Stanza }
+
+export const NONCE_SIZE = 16
 
 /**
  * An identity that can be used to decrypt a file key.
@@ -77,6 +79,7 @@ export class Encrypter {
     private passphrase: string | null = null
     private scryptWorkFactor = 18
     private recipients: Recipient[] = []
+    private headerSize: number | null = null
 
     /**
      * Set the passphrase to encrypt the file(s) with. This method can only be
@@ -132,6 +135,19 @@ export class Encrypter {
     }
 
     /**
+     * Calculate the size of the ciphertext for a given plaintext size.
+     * 
+     * @param plaintextSize - The size of the file to encrypt.
+     * @returns The size of the ciphertext, including header and nonce
+     */
+    getCiphertextSize(plaintextSize: number): number {
+        if (this.headerSize === null) {
+            throw new Error("header size not set")
+        }
+        return this.headerSize + NONCE_SIZE + calculateCiphertextLength(plaintextSize)
+    }
+
+    /**
      * Encrypt a file using the configured passphrase or recipients.
      *
      * @param file - The file to encrypt. If a string is passed, it will be
@@ -159,7 +175,7 @@ export class Encrypter {
         const mac = hmac(sha256, hmacKey, encodeHeaderNoMAC(stanzas))
         const header = encodeHeader(stanzas, mac)
 
-        const nonce = randomBytes(16)
+        const nonce = randomBytes(NONCE_SIZE)
         const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
         const payload = encryptSTREAM(streamKey, file)
 
@@ -180,7 +196,7 @@ export class Encrypter {
      * and writes it to to the WritableStream, and a key `ciphertextlength`, which contains the length of the ciphertext
      * 
      */
-    async streamEncrypt(plaintextSize: number): Promise<{ ciphertextStream: TransformStream<Uint8Array, Uint8Array>, ciphertextLength: number }> {
+    async streamEncrypt(plaintextSize: number): Promise<TransformStream<Uint8Array, Uint8Array>> {
         const fileKey = randomBytes(16)
         const stanzas: Stanza[] = []
     
@@ -197,8 +213,9 @@ export class Encrypter {
         const hmacKey = hkdf(sha256, fileKey, undefined, "header", 32)
         const mac = hmac(sha256, hmacKey, encodeHeaderNoMAC(stanzas))
         const header = encodeHeader(stanzas, mac)
+        this.headerSize = header.length
     
-        const nonce = randomBytes(16)
+        const nonce = randomBytes(NONCE_SIZE)
         const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
     
         const out = new Uint8Array(header.length + nonce.length)
@@ -285,9 +302,9 @@ export class Decrypter {
             throw Error("invalid header HMAC")
         }
 
-        const nonce = h.rest.subarray(0, 16)
+        const nonce = h.rest.subarray(0, NONCE_SIZE)
         const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
-        const payload = h.rest.subarray(16)
+        const payload = h.rest.subarray(NONCE_SIZE)
 
         const out = decryptSTREAM(streamKey, payload)
         if (outputFormat === "text") return new TextDecoder().decode(out)
