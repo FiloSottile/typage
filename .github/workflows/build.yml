@@ -7,6 +7,19 @@ on:
 permissions:
   contents: read
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x # Active LTS as of 2025-01
+      - run: npm clean-install
+      - run: npm run build
+      - run: npm run lint
+      - run: npm run test
   build:
     runs-on: ubuntu-latest
     steps:
@@ -28,7 +41,7 @@ jobs:
             typage.min.js
   upload:
     if: github.event_name == 'release'
-    needs: build
+    needs: [build, test]
     permissions:
       contents: write
       id-token: write
@@ -50,6 +63,7 @@ jobs:
           subject-path: "age-*.js"
   publish:
     if: github.event_name == 'release'
+    needs: upload
     permissions:
       id-token: write
     runs-on: ubuntu-latest
