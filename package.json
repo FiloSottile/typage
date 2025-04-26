@@ -9,9 +9,8 @@
         "url": "git+https://github.com/FiloSottile/typage.git"
     },
     "type": "module",
-    "exports": {
-        ".": "./dist/index.js"
-    },
+    "main": "./dist/index.js",
+    "exports": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "keywords": [
         "age",
