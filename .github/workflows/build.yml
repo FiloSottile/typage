@@ -18,11 +18,14 @@ jobs:
           node-version: 22.x
       - run: npm clean-install
       - run: npm run build
-      - run: node_modules/.bin/esbuild --target=es2022 --bundle --minify --outfile=typage.js --global-name=age age-encryption
+      - run: node_modules/.bin/esbuild --target=es2022 --bundle --outfile=typage.js --global-name=age age-encryption
+      - run: node_modules/.bin/esbuild --target=es2022 --bundle --minify --outfile=typage.min.js --global-name=age age-encryption
       - uses: actions/upload-artifact@v4
         with:
           name: age-esbuild
-          path: typage.js
+          path: |
+            typage.js
+            typage.min.js
   upload:
     if: github.event_name == 'release'
     needs: build
@@ -36,8 +39,9 @@ jobs:
         with:
           name: age-esbuild
       - run: |
-          mv typage.js "age-${VERSION#v}.min.js"
-          gh release upload -R FiloSottile/typage "$VERSION" "age-${VERSION#v}.min.js"
+          mv typage.js "age-${VERSION#v}.js"
+          mv typage.min.js "age-${VERSION#v}.min.js"
+          gh release upload -R FiloSottile/typage "$VERSION" "age-*.js"
         env:
           VERSION: ${{ github.event.release.tag_name }}
           GH_TOKEN: ${{ github.token }}
