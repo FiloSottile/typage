@@ -35,16 +35,20 @@ export function encode(file: Uint8Array): string {
  */
 export function decode(file: string): Uint8Array {
     const lines = file.trim().replaceAll("\r\n", "\n").split("\n")
-    if (lines[0] !== "-----BEGIN AGE ENCRYPTED FILE-----") {
+    if (lines.shift() !== "-----BEGIN AGE ENCRYPTED FILE-----") {
         throw Error("invalid header")
     }
-    if (lines[lines.length - 1] !== "-----END AGE ENCRYPTED FILE-----") {
+    if (lines.pop() !== "-----END AGE ENCRYPTED FILE-----") {
         throw Error("invalid footer")
     }
-    lines.shift()
-    lines.pop()
-    if (lines.some((l, i) => i === lines.length - 1 ? l.length > 64 : l.length !== 64)) {
-        throw Error("line too long")
+    function isLineLengthValid(i: number, l: string): boolean {
+        if (i === lines.length - 1) {
+            return l.length > 0 && l.length <= 64 && l.length % 4 === 0
+        }
+        return l.length === 64
+    }
+    if (!lines.every((l, i) => isLineLengthValid(i, l))) {
+        throw Error("invalid line length")
     }
     return base64.decode(lines.join(""))
 }
