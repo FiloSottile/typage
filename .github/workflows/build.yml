@@ -28,15 +28,22 @@ jobs:
     needs: build
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: age-esbuild
-      - run: gh release upload -R FiloSottile/typage "$VERSION" "typage.js#age-${VERSION#v}.min.js"
+      - run: |
+          mv typage.js "age-${VERSION#v}.min.js"
+          gh release upload -R FiloSottile/typage "$VERSION" "age-${VERSION#v}.min.js"
         env:
           VERSION: ${{ github.event.release.tag_name }}
           GH_TOKEN: ${{ github.token }}
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: "age-*.js"
   publish:
     if: github.event_name == 'release'
     permissions:
