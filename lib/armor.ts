@@ -50,5 +50,8 @@ export function decode(file: string): Uint8Array {
     if (!lines.every((l, i) => isLineLengthValid(i, l))) {
         throw Error("invalid line length")
     }
+    if (!lines.every((l) => /^[A-Za-z0-9+/=]+$/.test(l))) {
+        throw Error("invalid base64")
+    }
     return base64.decode(lines.join(""))
 }
