@@ -98,6 +98,42 @@ const out = await d.decrypt(ciphertext, "text")
 console.log(out)
 ```
 
+#### Encrypt and decrypt using Streams API
+
+`age-encryption` can also encrypt and decrypt using the [Streams API](https://developer.mozilla.org/en-US/docs/Web/API/Streams_API). This can be useful for encrypting or decrypting large files on the fly during uploading or downloading.
+
+```ts
+import { Encrypter, Decrypter } from 'age-encryption'
+
+const e = new Encrypter()
+const d = new Decrypter()
+e.setScryptWorkFactor(12)
+e.setPassphrase('light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion')
+d.addPassphrase('light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion')
+
+const file = new File([new TextEncoder().encode('age')], 'age.txt')
+
+// TransformStream for encryption
+const encryptionStream = await e.streamEncrypt(file.size)
+// Calculate what the length of the ciphertext will be
+const ciphertextLength = e.getCiphertextSize(file.size)
+// TransformStream for decryption
+const decryptionStream = d.streamDecrypt(ciphertextLength)
+
+const reader = file.stream().pipeThrough(encryptionStream).pipeThrough(decryptionStream).getReader()
+let out = ''
+while (true) {
+  const { done, value } = await reader.read()
+  if (done) {
+    break
+  }
+  if (value) {
+    out += new TextDecoder().decode(value)
+  }
+}
+console.log(out) // age
+```
+
 ### Browser usage
 
 `age-encryption` is compatible with modern bundlers such as [esbuild](https://esbuild.github.io/).
