@@ -256,6 +256,35 @@ export class Decrypter {
         return out
     }
 
+    /**
+     * Decrypt the file key from a detached header. This is a low-level
+     * function that can be used to implement delegated decryption logic.
+     * Most users won't need this.
+     *
+     * It is the caller's responsibility to keep track of what file the
+     * returned file key decrypts, and to ensure the file key is not used
+     * for any other purpose.
+     *
+     * @param header - The file's textual header, including the MAC.
+     *
+     * @returns The file key used to encrypt the file.
+     */
+    async decryptHeader(header: Uint8Array): Promise<Uint8Array> {
+        const h = parseHeader(header)
+        const fileKey = await this.unwrapFileKey(h.stanzas)
+        if (fileKey === null) {
+            throw Error("no identity matched any of the file's recipients")
+        }
+
+        const hmacKey = hkdf(sha256, fileKey, undefined, "header", 32)
+        const mac = hmac(sha256, hmacKey, h.headerNoMAC)
+        if (!compareBytes(h.MAC, mac)) {
+            throw Error("invalid header HMAC")
+        }
+
+        return fileKey
+    }
+
     private async unwrapFileKey(stanzas: Stanza[]): Promise<Uint8Array | null> {
         for (const identity of this.identities) {
             const fileKey = await identity.unwrapFileKey(stanzas)
