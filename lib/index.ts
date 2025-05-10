@@ -235,25 +235,44 @@ export class Decrypter {
     async decrypt(file: Uint8Array, outputFormat?: "uint8array"): Promise<Uint8Array>
     async decrypt(file: Uint8Array, outputFormat: "text"): Promise<string>
     async decrypt(file: Uint8Array, outputFormat?: "text" | "uint8array"): Promise<string | Uint8Array> {
-        const h = parseHeader(file)
-        const fileKey = await this.unwrapFileKey(h.stanzas)
-        if (fileKey === null) {
-            throw Error("no identity matched any of the file's recipients")
-        }
+        const { fileKey, rest } = await this.decryptHeaderInternal(file)
 
-        const hmacKey = hkdf(sha256, fileKey, undefined, "header", 32)
-        const mac = hmac(sha256, hmacKey, h.headerNoMAC)
-        if (!compareBytes(h.MAC, mac)) {
-            throw Error("invalid header HMAC")
-        }
-
-        const nonce = h.rest.subarray(0, 16)
+        const nonce = rest.subarray(0, 16)
         const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
-        const payload = h.rest.subarray(16)
+        const payload = rest.subarray(16)
 
         const out = decryptSTREAM(streamKey, payload)
         if (outputFormat === "text") return new TextDecoder().decode(out)
         return out
+    }
+
+    /**
+     * Decrypt the file key from a detached header. This is a low-level
+     * function that can be used to implement delegated decryption logic.
+     * Most users won't need this.
+     *
+     * It is the caller's responsibility to keep track of what file the
+     * returned file key decrypts, and to ensure the file key is not used
+     * for any other purpose.
+     *
+     * @param header - The file's textual header, including the MAC.
+     *
+     * @returns The file key used to encrypt the file.
+     */
+    async decryptHeader(header: Uint8Array): Promise<Uint8Array> {
+        return (await this.decryptHeaderInternal(header)).fileKey
+    }
+
+    private async decryptHeaderInternal(file: Uint8Array): Promise<{ fileKey: Uint8Array, rest: Uint8Array }> {
+        const h = parseHeader(file)
+        const fileKey = await this.unwrapFileKey(h.stanzas)
+        if (fileKey === null) throw Error("no identity matched any of the file's recipients")
+
+        const hmacKey = hkdf(sha256, fileKey, undefined, "header", 32)
+        const mac = hmac(sha256, hmacKey, h.headerNoMAC)
+        if (!compareBytes(h.MAC, mac)) throw Error("invalid header HMAC")
+
+        return { fileKey: fileKey, rest: h.rest }
     }
 
     private async unwrapFileKey(stanzas: Stanza[]): Promise<Uint8Array | null> {
