@@ -155,7 +155,9 @@ export class Encrypter {
      *
      * @returns A promise that resolves to the encrypted file as a Uint8Array.
      */
-    async encrypt(file: Uint8Array | string): Promise<Uint8Array> {
+    async encrypt(file: Uint8Array | string): Promise<Uint8Array>
+    async encrypt(file: Blob): Promise<ReadableStream<Uint8Array>>
+    async encrypt(file: Uint8Array | string | Blob): Promise<Uint8Array | ReadableStream<Uint8Array>> {
         if (typeof file === "string") {
             file = new TextEncoder().encode(file)
         }
@@ -174,56 +176,29 @@ export class Encrypter {
         const hmacKey = hkdf(sha256, fileKey, undefined, "header", 32)
         const mac = hmac(sha256, hmacKey, encodeHeaderNoMAC(stanzas))
         const header = encodeHeader(stanzas, mac)
-
-        const nonce = randomBytes(NONCE_SIZE)
-        const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
-        const payload = encryptSTREAM(streamKey, file)
-
-        const out = new Uint8Array(header.length + nonce.length + payload.length)
-        out.set(header)
-        out.set(nonce, header.length)
-        out.set(payload, header.length + nonce.length)
-        return out
-    }
-
-    /**
-     * Encrypt a file using the configured passphrase or recipients using 
-     * the Streams API.
-     * 
-     * @param plaintextSize - The size of the file to encrypt.
-     *
-     * @returns A TransformStream that encrypts the ReadableStream 
-     * and writes it to to the WritableStream.
-     * 
-     */
-    async streamEncrypt(plaintextSize: number): Promise<TransformStream<Uint8Array, Uint8Array>> {
-        const fileKey = randomBytes(16)
-        const stanzas: Stanza[] = []
-
-        let recipients = this.recipients
-        if (this.passphrase !== null) {
-            recipients = [
-                new ScryptRecipient(this.passphrase, this.scryptWorkFactor),
-            ]
-        }
-        for (const recipient of recipients) {
-            stanzas.push(...(await recipient.wrapFileKey(fileKey)))
-        }
-
-        const hmacKey = hkdf(sha256, fileKey, undefined, "header", 32)
-        const mac = hmac(sha256, hmacKey, encodeHeaderNoMAC(stanzas))
-        const header = encodeHeader(stanzas, mac)
         this.headerSize = header.length
 
         const nonce = randomBytes(NONCE_SIZE)
         const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
 
-        const out = new Uint8Array(header.length + nonce.length)
-        out.set(header)
-        out.set(nonce, header.length)
+        if (file instanceof Blob) {
+            const out = new Uint8Array(header.length + nonce.length)
+            out.set(header)
+            out.set(nonce, header.length)
 
-        return encryptTransformSTREAM(streamKey, plaintextSize, out)
+            const encryptionStream = encryptTransformSTREAM(streamKey, file.size, out)
+            return file.stream().pipeThrough(encryptionStream)
+        } else {
+            const payload = encryptSTREAM(streamKey, file)
+            const out = new Uint8Array(header.length + nonce.length + payload.length)
+            out.set(header)
+            out.set(nonce, header.length)
+            out.set(payload, header.length + nonce.length)
+
+            return out
+        }
     }
+
 }
 
 /**

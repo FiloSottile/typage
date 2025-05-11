@@ -110,9 +110,9 @@ describe("AgeEncrypter", function () {
         e.setScryptWorkFactor(12)
         e.setPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
         const file = new Blob([new TextEncoder().encode("age")])
-        const ciphertextStream = await e.streamEncrypt(file.size)
+        const ciphertextStream = await e.encrypt(file)
         const ciphertextLength = e.getCiphertextSize(file.size)
-        const reader = file.stream().pipeThrough(ciphertextStream).getReader()
+        const reader = ciphertextStream.getReader()
         const ciphertext = new Uint8Array(ciphertextLength)
         let index = 0
         while (true) {
@@ -159,13 +159,13 @@ describe("AgeEncrypter", function () {
         e.setScryptWorkFactor(12)
         e.setPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
         d.addPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
-        
+
         const file = new Blob([new TextEncoder().encode("age")])
-        const encryptionStream = await e.streamEncrypt(file.size)
+        const encryptionStream = await e.encrypt(file)
         const ciphertextLength = e.getCiphertextSize(file.size)
         const decryptionStream = d.streamDecrypt(ciphertextLength)
 
-        const reader = file.stream().pipeThrough(encryptionStream).pipeThrough(decryptionStream).getReader()
+        const reader = encryptionStream.pipeThrough(decryptionStream).getReader()
         let out = ""
         while (true) {
             const { done, value } = await reader.read()
@@ -183,9 +183,9 @@ describe("AgeEncrypter", function () {
         e.setScryptWorkFactor(12)
         e.setPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
         const file = new Blob([new TextEncoder().encode("age")])
-        const ciphertextStream = await e.streamEncrypt(file.size)
+        const ciphertextStream = await e.encrypt(file)
         const ciphertextLength = e.getCiphertextSize(file.size)
-        const reader = file.stream().pipeThrough(ciphertextStream).getReader()
+        const reader = ciphertextStream.getReader()
         const ciphertext = new Uint8Array(ciphertextLength)
         let index = 0
         while (true) {
