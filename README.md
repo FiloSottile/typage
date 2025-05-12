@@ -114,13 +114,16 @@ d.addPassphrase('light-original-energy-average-wish-blind-vendor-pencil-illness-
 const file = new File([new TextEncoder().encode('age')], 'age.txt')
 
 // TransformStream for encryption
-const encryptionStream = await e.streamEncrypt(file.size)
-// Calculate what the length of the ciphertext will be
-const ciphertextLength = e.getCiphertextSize(file.size)
-// TransformStream for decryption
-const decryptionStream = d.streamDecrypt(ciphertextLength)
+const encryptionStream = await e.encrypt(file.stream())
 
-const reader = file.stream().pipeThrough(encryptionStream).pipeThrough(decryptionStream).getReader()
+// TransformStream for decryption
+const decryptionStream = await d.decrypt(encryptionStream)
+
+// If you need to know the length of the ciphertext beforehand, you can use getCiphertextSize
+const ciphertextLength = e.getCiphertextSize(file.size)
+console.log(`The final ciphertext size will be ${ciphertextLength}`)
+
+const reader = decryptionStream.getReader()
 let out = ''
 while (true) {
   const { done, value } = await reader.read()
