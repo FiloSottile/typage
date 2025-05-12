@@ -110,7 +110,7 @@ describe("AgeEncrypter", function () {
         e.setScryptWorkFactor(12)
         e.setPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
         const file = new Blob([new TextEncoder().encode("age")])
-        const ciphertextStream = await e.encrypt(file)
+        const ciphertextStream = await e.encrypt(file.stream())
         const ciphertextLength = e.getCiphertextSize(file.size)
         const reader = ciphertextStream.getReader()
         const ciphertext = new Uint8Array(ciphertextLength)
@@ -136,7 +136,7 @@ describe("AgeEncrypter", function () {
         e.setPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
         const fileData = new Uint8Array(size).fill(42)
         const file = new File([fileData], "large_file")
-        const ciphertextStream = await e.encrypt(file)
+        const ciphertextStream = await e.encrypt(file.stream())
         const ciphertextLength = e.getCiphertextSize(file.size)
         const reader = ciphertextStream.getReader()
         const ciphertext = new Uint8Array(ciphertextLength)
@@ -165,9 +165,9 @@ describe("AgeEncrypter", function () {
 
         const d = new Decrypter()
         d.addPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
-        const decryptionStream = d.streamDecrypt(file.length)
         const blob = new Blob([file])
-        const reader = blob.stream().pipeThrough(decryptionStream).getReader()
+        const decryptionStream = await d.decrypt(blob.stream())
+        const reader = decryptionStream.getReader()
         const out = new Uint8Array(fileData.length)
         let pointer = 0
         while (true) {
@@ -190,9 +190,9 @@ describe("AgeEncrypter", function () {
 
         const d = new Decrypter()
         d.addPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
-        const decryptionStream = d.streamDecrypt(file.length)
         const blob = new Blob([file])
-        const reader = blob.stream().pipeThrough(decryptionStream).getReader()
+        const decryptionStream = await d.decrypt(blob.stream())
+        const reader = decryptionStream.getReader()
         let out = ""
         while (true) {
             const { done, value } = await reader.read()
@@ -213,11 +213,10 @@ describe("AgeEncrypter", function () {
         d.addPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
 
         const file = new Blob([new TextEncoder().encode("age")])
-        const encryptionStream = await e.encrypt(file)
-        const ciphertextLength = e.getCiphertextSize(file.size)
-        const decryptionStream = d.streamDecrypt(ciphertextLength)
+        const encryptionStream = await e.encrypt(file.stream())
+        const decryptionStream = await d.decrypt(encryptionStream)
 
-        const reader = encryptionStream.pipeThrough(decryptionStream).getReader()
+        const reader = decryptionStream.getReader()
         let out = ""
         while (true) {
             const { done, value } = await reader.read()
@@ -235,7 +234,7 @@ describe("AgeEncrypter", function () {
         e.setScryptWorkFactor(12)
         e.setPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
         const file = new Blob([new TextEncoder().encode("age")])
-        const ciphertextStream = await e.encrypt(file)
+        const ciphertextStream = await e.encrypt(file.stream())
         const ciphertextLength = e.getCiphertextSize(file.size)
         const reader = ciphertextStream.getReader()
         const ciphertext = new Uint8Array(ciphertextLength)
