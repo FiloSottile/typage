@@ -135,7 +135,7 @@ describe("AgeEncrypter", function () {
         e.setScryptWorkFactor(12)
         e.setPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
         const fileData = new Uint8Array(size).fill(42)
-        const file = new File([fileData], "large_file")
+        const file = new Blob([fileData])
         const ciphertextStream = await e.encrypt(file.stream())
         const ciphertextLength = e.getCiphertextSize(file.size)
         const reader = ciphertextStream.getReader()
