@@ -314,7 +314,7 @@ export class Decrypter {
             return { key: streamKey, payload: h.rest.subarray(NONCE_SIZE) }
         }
 
-        return decryptTransformSTREAM(ciphertextSize, getStreamKey)
+        return decryptTransformSTREAM(getStreamKey)
     }
 
     private async unwrapFileKey(stanzas: Stanza[]): Promise<Uint8Array | null> {

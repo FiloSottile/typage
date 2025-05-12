@@ -78,7 +78,7 @@ export function encryptSTREAM(key: Uint8Array, plaintext: Uint8Array): Uint8Arra
     return ciphertext
 }
 
-export function decryptTransformSTREAM(ciphertextLength: number, getStreamKey: (chunk: Uint8Array) => Promise<{key: Uint8Array, payload: Uint8Array }>): TransformStream<Uint8Array, Uint8Array> {
+export function decryptTransformSTREAM(getStreamKey: (chunk: Uint8Array) => Promise<{ key: Uint8Array, payload: Uint8Array }>): TransformStream<Uint8Array, Uint8Array> {
     const streamNonce = new Uint8Array(12)
     const incNonce = () => {
         for (let i = streamNonce.length - 2; i >= 0; i--) {
@@ -88,7 +88,6 @@ export function decryptTransformSTREAM(ciphertextLength: number, getStreamKey: (
     }
 
     const ciphertextBuffer = new Uint8Array(chunkSizeWithOverhead)
-    const lastChunkSize = ciphertextLength % chunkSizeWithOverhead
     let bufferUsed = 0
     let isFirstChunk = true
     let streamKey: Uint8Array
@@ -103,34 +102,29 @@ export function decryptTransformSTREAM(ciphertextLength: number, getStreamKey: (
             }
             let chunkOffset = 0
             while (chunkOffset < chunk.length) {
-                const bytesAvailable = ciphertextBuffer.length - bufferUsed
-                const bytesToCopy = Math.min(bytesAvailable, chunk.length - chunkOffset)
-                ciphertextBuffer.set(chunk.subarray(chunkOffset, chunkOffset + bytesToCopy), bufferUsed)
-                bufferUsed += bytesToCopy
-                chunkOffset += bytesToCopy
                 if (bufferUsed === ciphertextBuffer.length) {
-                    if (lastChunkSize === 0) {
-                        streamNonce[11] = 1 // Last chunk flag in rare cases where plaintextLength % chunkSizeWithOverhead == 0
-                    }
                     const decryptedChunk = chacha20poly1305(streamKey, streamNonce).decrypt(ciphertextBuffer)
                     controller.enqueue(decryptedChunk)
                     incNonce()
                     bufferUsed = 0
                 }
+                const bytesAvailable = ciphertextBuffer.length - bufferUsed
+                const bytesToCopy = Math.min(bytesAvailable, chunk.length - chunkOffset)
+                ciphertextBuffer.set(chunk.subarray(chunkOffset, chunkOffset + bytesToCopy), bufferUsed)
+                bufferUsed += bytesToCopy
+                chunkOffset += bytesToCopy
             }
         },
         flush(controller) {
-            if (bufferUsed > 0) {
-                streamNonce[11] = 1 // Last chunk flag.
-                const decryptedChunk = chacha20poly1305(streamKey, streamNonce).decrypt(ciphertextBuffer.subarray(0, bufferUsed))
-                controller.enqueue(decryptedChunk)
-            }
+            streamNonce[11] = 1 // Last chunk flag.
+            const decryptedChunk = chacha20poly1305(streamKey, streamNonce).decrypt(ciphertextBuffer.subarray(0, bufferUsed))
+            controller.enqueue(decryptedChunk)
         },
     })
 
 }
 
-export function encryptTransformSTREAM(key: Uint8Array, plaintextLength: number, headerAndNonce: Uint8Array): TransformStream<Uint8Array, Uint8Array> {
+export function encryptTransformSTREAM(key: Uint8Array, headerAndNonce: Uint8Array): TransformStream<Uint8Array, Uint8Array> {
     const streamNonce = new Uint8Array(12)
     const incNonce = () => {
         for (let i = streamNonce.length - 2; i >= 0; i--) {
@@ -140,7 +134,6 @@ export function encryptTransformSTREAM(key: Uint8Array, plaintextLength: number,
     }
 
     const plaintextBuffer = new Uint8Array(chunkSize)
-    const lastChunkSize = plaintextLength % chunkSize
     let bufferUsed = 0
 
     const ciphertextStream = new TransformStream<Uint8Array, Uint8Array>({
@@ -150,28 +143,23 @@ export function encryptTransformSTREAM(key: Uint8Array, plaintextLength: number,
         transform(chunk, controller) {
             let chunkOffset = 0
             while (chunkOffset < chunk.length) {
-                const bytesAvailable = plaintextBuffer.length - bufferUsed
-                const bytesToCopy = Math.min(bytesAvailable, chunk.length - chunkOffset)
-                plaintextBuffer.set(chunk.subarray(chunkOffset, chunkOffset + bytesToCopy), bufferUsed)
-                bufferUsed += bytesToCopy
-                chunkOffset += bytesToCopy
                 if (bufferUsed === plaintextBuffer.length) {
-                    if (lastChunkSize === 0) {
-                        streamNonce[11] = 1 // Last chunk flag in rare cases where plaintextLength % chunkSizeWithOverhead == 0
-                    }
                     const encryptedChunk = chacha20poly1305(key, streamNonce).encrypt(plaintextBuffer)
                     controller.enqueue(encryptedChunk)
                     incNonce()
                     bufferUsed = 0
                 }
+                const bytesAvailable = plaintextBuffer.length - bufferUsed
+                const bytesToCopy = Math.min(bytesAvailable, chunk.length - chunkOffset)
+                plaintextBuffer.set(chunk.subarray(chunkOffset, chunkOffset + bytesToCopy), bufferUsed)
+                bufferUsed += bytesToCopy
+                chunkOffset += bytesToCopy
             }
         },
         flush(controller) {
-            if (bufferUsed > 0) {
-                streamNonce[11] = 1 // Last chunk flag.
-                const encryptedChunk = chacha20poly1305(key, streamNonce).encrypt(plaintextBuffer.subarray(0, bufferUsed))
-                controller.enqueue(encryptedChunk)
-            }
+            streamNonce[11] = 1 // Last chunk flag.
+            const encryptedChunk = chacha20poly1305(key, streamNonce).encrypt(plaintextBuffer.subarray(0, bufferUsed))
+            controller.enqueue(encryptedChunk)
         },
     })
 
