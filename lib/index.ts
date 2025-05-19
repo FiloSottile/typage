@@ -272,13 +272,8 @@ export class Decrypter {
             if (outputFormat === "text") return new TextDecoder().decode(out)
             return out
         } else {
-            const [headerStream, fileStream] = file.tee()
-            const { value } = await headerStream.getReader().read()
-            if (value === undefined) {
-                throw Error("invalid header data")
-            }
             const decryptionStream = decryptTransformSTREAM(this.getStreamKey.bind(this))
-            return fileStream.pipeThrough(decryptionStream)
+            return file.pipeThrough(decryptionStream)
         }
     }
 
