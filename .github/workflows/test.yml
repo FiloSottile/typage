@@ -56,6 +56,8 @@ jobs:
       - run: npm update
       - run: npm run build
       - run: npm run examples:bun
+      # https://github.com/oven-sh/bun/issues/4145
+      # - run: bun run --bun test:short
   deno:
     runs-on: ubuntu-latest
     steps:
@@ -71,3 +73,30 @@ jobs:
       - run: npm update
       - run: npm run build
       - run: npm run examples:deno
+  yarn:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - run: npm update
+      - run: npm run build
+      - run: npm run examples:yarn
+  pnpm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+      - run: npm update
+      - run: npm run build
+      - run: npm run examples:pnpm

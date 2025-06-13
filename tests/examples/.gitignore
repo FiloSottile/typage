@@ -1,5 +1,8 @@
 /node_modules
 /package-lock.json
 /bun.lockb
+/bun.lock
+/yarn.lock
+/pnpm-lock.yaml
 /deno.lock
 /age.js
