@@ -25,54 +25,53 @@ export class Stanza {
 }
 
 class ByteReader {
-    private arr: Uint8Array
-    constructor(arr: Uint8Array) {
-        this.arr = arr
+    private s: ReadableStreamDefaultReader<Uint8Array>
+    private transcript: Uint8Array[] = []
+    private buf: Uint8Array
+
+    constructor(stream: ReadableStream<Uint8Array>, prefix: Uint8Array = new Uint8Array()) {
+        this.s = stream.getReader()
+        this.buf = prefix
     }
 
-    private toString(bytes: Uint8Array): string {
-        bytes.forEach((b) => {
-            if (b < 32 || b > 126) {
-                throw Error("invalid non-ASCII byte in header")
+    async readLine(): Promise<string | null> {
+        const line: Uint8Array[] = []
+        while (true) {
+            const i = this.buf.indexOf("\n".charCodeAt(0))
+            if (i >= 0) {
+                line.push(this.buf.subarray(0, i))
+                this.transcript.push(this.buf.subarray(0, i + 1))
+                this.buf = this.buf.subarray(i + 1)
+                return asciiString(flattenArray(line))
             }
-        })
-        return new TextDecoder().decode(bytes)
-    }
+            if (this.buf.length > 0) {
+                line.push(this.buf)
+                this.transcript.push(this.buf)
+            }
 
-    readString(n: number): string {
-        const out = this.arr.subarray(0, n)
-        this.arr = this.arr.subarray(n)
-        return this.toString(out)
-    }
-
-    readLine(): string | null {
-        const i = this.arr.indexOf("\n".charCodeAt(0))
-        if (i >= 0) {
-            const out = this.arr.subarray(0, i)
-            this.arr = this.arr.subarray(i + 1)
-            return this.toString(out)
+            const next = await this.s.read()
+            if (next.done) {
+                this.buf = flattenArray(line)
+                return null
+            }
+            this.buf = next.value
         }
-        return null
     }
 
-    rest(): Uint8Array {
-        return this.arr
+    close(): { rest: Uint8Array, transcript: Uint8Array } {
+        this.s.releaseLock()
+        return { rest: this.buf, transcript: flattenArray(this.transcript) }
     }
 }
 
-function parseNextStanza(header: Uint8Array): [s: Stanza, rest: Uint8Array] {
-    const hdr = new ByteReader(header)
-    if (hdr.readString(3) !== "-> ") {
-        throw Error("invalid stanza")
-    }
-
-    const argsLine = hdr.readLine()
+async function parseNextStanza(hdr: ByteReader): Promise<{ s: Stanza, next?: never } | { s?: never, next: string }> {
+    const argsLine = await hdr.readLine()
     if (argsLine === null) {
         throw Error("invalid stanza")
     }
     const args = argsLine.split(" ")
-    if (args.length < 1) {
-        throw Error("invalid stanza")
+    if (args.length < 2 || args.shift() !== "->") {
+        return { next: argsLine }
     }
     for (const arg of args) {
         if (arg.length === 0) {
@@ -82,7 +81,7 @@ function parseNextStanza(header: Uint8Array): [s: Stanza, rest: Uint8Array] {
 
     const bodyLines: Uint8Array[] = []
     for (; ;) {
-        const nextLine = hdr.readLine()
+        const nextLine = await hdr.readLine()
         if (nextLine === null) {
             throw Error("invalid stanza")
         }
@@ -97,7 +96,7 @@ function parseNextStanza(header: Uint8Array): [s: Stanza, rest: Uint8Array] {
     }
     const body = flattenArray(bodyLines)
 
-    return [new Stanza(args, body), hdr.rest()]
+    return { s: new Stanza(args, body) }
 }
 
 function flattenArray(arr: Uint8Array[]): Uint8Array {
@@ -111,38 +110,59 @@ function flattenArray(arr: Uint8Array[]): Uint8Array {
     return out
 }
 
-export function parseHeader(header: Uint8Array): {
-    stanzas: Stanza[], MAC: Uint8Array, headerNoMAC: Uint8Array, rest: Uint8Array
-} {
+function asciiString(bytes: Uint8Array): string {
+    bytes.forEach((b) => {
+        if (b < 32 || b > 126) {
+            throw Error("invalid non-ASCII byte in header")
+        }
+    })
+    return new TextDecoder().decode(bytes)
+}
+
+function prependToStream(prefix: Uint8Array, s: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+    const reader = s.getReader()
+    return new ReadableStream({
+        start(controller) {
+            controller.enqueue(prefix)
+        },
+        async pull(controller) {
+            const { done, value } = await reader.read()
+            if (done) {
+                controller.close()
+                return
+            }
+            controller.enqueue(value)
+        },
+        cancel(reason) {
+            return s.cancel(reason)
+        },
+    })
+}
+
+export async function parseHeader(header: ReadableStream<Uint8Array>): Promise<{
+    stanzas: Stanza[], MAC: Uint8Array, headerNoMAC: Uint8Array, rest: ReadableStream<Uint8Array>,
+}> {
     const hdr = new ByteReader(header)
-    const versionLine = hdr.readLine()
+    const versionLine = await hdr.readLine()
     if (versionLine !== "age-encryption.org/v1") {
         throw Error("invalid version " + (versionLine ?? "line"))
     }
-    let rest = hdr.rest()
 
     const stanzas: Stanza[] = []
     for (; ;) {
-        let s: Stanza
-        [s, rest] = parseNextStanza(rest)
-        stanzas.push(s)
-
-        const hdr = new ByteReader(rest)
-        if (hdr.readString(4) === "--- ") {
-            const headerNoMAC = header.subarray(0, header.length - hdr.rest().length - 1)
-            const macLine = hdr.readLine()
-            if (macLine === null) {
-                throw Error("invalid header")
-            }
-            const mac = base64nopad.decode(macLine)
-
-            return {
-                stanzas: stanzas,
-                headerNoMAC: headerNoMAC,
-                MAC: mac,
-                rest: hdr.rest(),
-            }
+        const { s, next: macLine } = await parseNextStanza(hdr)
+        if (s !== undefined) {
+            stanzas.push(s)
+            continue
         }
+
+        if (!macLine.startsWith("--- ")) {
+            throw Error("invalid header")
+        }
+        const MAC = base64nopad.decode(macLine.slice(4))
+        const { rest, transcript } = hdr.close()
+        const headerNoMAC = transcript.slice(0, transcript.length - 1 - macLine.length + 3)
+        return { stanzas, headerNoMAC, MAC, rest: prependToStream(rest, header) }
     }
 }
 
