@@ -235,7 +235,9 @@ export class Decrypter {
     async decrypt(file: Uint8Array, outputFormat?: "uint8array"): Promise<Uint8Array>
     async decrypt(file: Uint8Array, outputFormat: "text"): Promise<string>
     async decrypt(file: Uint8Array, outputFormat?: "text" | "uint8array"): Promise<string | Uint8Array> {
-        const { fileKey, rest } = await this.decryptHeaderInternal(file)
+        const stream = StreamFromUint8Array(file)
+        const { fileKey, rest: r } = await this.decryptHeaderInternal(stream)
+        const rest = await Uint8ArrayFromStream(r)
 
         const nonce = rest.subarray(0, 16)
         const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
@@ -260,11 +262,11 @@ export class Decrypter {
      * @returns The file key used to encrypt the file.
      */
     async decryptHeader(header: Uint8Array): Promise<Uint8Array> {
-        return (await this.decryptHeaderInternal(header)).fileKey
+        return (await this.decryptHeaderInternal(StreamFromUint8Array(header))).fileKey
     }
 
-    private async decryptHeaderInternal(file: Uint8Array): Promise<{ fileKey: Uint8Array, rest: Uint8Array }> {
-        const h = parseHeader(file)
+    private async decryptHeaderInternal(file: ReadableStream<Uint8Array>): Promise<{ fileKey: Uint8Array, rest: ReadableStream<Uint8Array> }> {
+        const h = await parseHeader(file)
         const fileKey = await this.unwrapFileKey(h.stanzas)
         if (fileKey === null) throw Error("no identity matched any of the file's recipients")
 
@@ -295,4 +297,18 @@ function compareBytes(a: Uint8Array, b: Uint8Array): boolean {
 
 function isCryptoKey(key: unknown): key is CryptoKey {
     return typeof CryptoKey !== "undefined" && key instanceof CryptoKey
+}
+
+function StreamFromUint8Array(a: Uint8Array): ReadableStream<Uint8Array> {
+    // https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream/from_static
+    return new ReadableStream({
+        start(controller) {
+            controller.enqueue(a)
+            controller.close()
+        }
+    })
+}
+
+async function Uint8ArrayFromStream(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
+    return new Uint8Array(await new Response(stream).arrayBuffer())
 }
