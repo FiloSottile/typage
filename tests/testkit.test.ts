@@ -1,6 +1,7 @@
 import { describe, it, assert, expect, onTestFinished } from "vitest"
 import { encodeHeader, encodeHeaderNoMAC, parseHeader } from "../lib/format.js"
 import { decryptSTREAM, encryptSTREAM } from "../lib/stream.js"
+import { stream, readAll } from "../lib/io.js"
 import { forceWebCryptoOff } from "../lib/x25519.js"
 import { hkdf } from "@noble/hashes/hkdf"
 import { sha256 } from "@noble/hashes/sha256"
@@ -82,8 +83,10 @@ describe("CCTV testkit", async function () {
                 const nonce = rest.subarray(0, 16)
                 const streamKey = hkdf(sha256, hex.decode(vec.meta["file key"]), nonce, "payload", 32)
                 const payload = rest.subarray(16)
-                const plaintext = decryptSTREAM(streamKey, payload)
-                assert.deepEqual(encryptSTREAM(streamKey, plaintext), payload)
+                const decrypter = decryptSTREAM(streamKey)
+                const encrypter = encryptSTREAM(streamKey)
+                const got = await readAll(stream(payload).pipeThrough(decrypter).pipeThrough(encrypter))
+                assert.deepEqual(got, payload)
             })
         } else {
             it(vec.name + " should fail", async function () {
@@ -116,17 +119,4 @@ function findSeparator(data: Uint8Array): number {
         }
     }
     throw Error("no separator found")
-}
-
-function stream(a: Uint8Array): ReadableStream<Uint8Array> {
-    return new ReadableStream({
-        start(controller) {
-            controller.enqueue(a)
-            controller.close()
-        }
-    })
-}
-
-async function readAll(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
-    return new Uint8Array(await new Response(stream).arrayBuffer())
 }

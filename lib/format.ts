@@ -1,4 +1,5 @@
 import { base64nopad } from "@scure/base"
+import { LineReader, flatten, prepend } from "./io.js"
 
 /**
  * A stanza is a section of an age header. This is part of the low-level
@@ -24,47 +25,7 @@ export class Stanza {
     }
 }
 
-class ByteReader {
-    private s: ReadableStreamDefaultReader<Uint8Array>
-    private transcript: Uint8Array[] = []
-    private buf: Uint8Array
-
-    constructor(stream: ReadableStream<Uint8Array>, prefix: Uint8Array = new Uint8Array()) {
-        this.s = stream.getReader()
-        this.buf = prefix
-    }
-
-    async readLine(): Promise<string | null> {
-        const line: Uint8Array[] = []
-        while (true) {
-            const i = this.buf.indexOf("\n".charCodeAt(0))
-            if (i >= 0) {
-                line.push(this.buf.subarray(0, i))
-                this.transcript.push(this.buf.subarray(0, i + 1))
-                this.buf = this.buf.subarray(i + 1)
-                return asciiString(flattenArray(line))
-            }
-            if (this.buf.length > 0) {
-                line.push(this.buf)
-                this.transcript.push(this.buf)
-            }
-
-            const next = await this.s.read()
-            if (next.done) {
-                this.buf = flattenArray(line)
-                return null
-            }
-            this.buf = next.value
-        }
-    }
-
-    close(): { rest: Uint8Array, transcript: Uint8Array } {
-        this.s.releaseLock()
-        return { rest: this.buf, transcript: flattenArray(this.transcript) }
-    }
-}
-
-async function parseNextStanza(hdr: ByteReader): Promise<{ s: Stanza, next?: never } | { s?: never, next: string }> {
+async function parseNextStanza(hdr: LineReader): Promise<{ s: Stanza, next?: never } | { s?: never, next: string }> {
     const argsLine = await hdr.readLine()
     if (argsLine === null) {
         throw Error("invalid stanza")
@@ -94,55 +55,15 @@ async function parseNextStanza(hdr: ByteReader): Promise<{ s: Stanza, next?: nev
             break
         }
     }
-    const body = flattenArray(bodyLines)
+    const body = flatten(bodyLines)
 
     return { s: new Stanza(args, body) }
-}
-
-function flattenArray(arr: Uint8Array[]): Uint8Array {
-    const len = arr.reduce(((sum, line) => sum + line.length), 0)
-    const out = new Uint8Array(len)
-    let n = 0
-    for (const a of arr) {
-        out.set(a, n)
-        n += a.length
-    }
-    return out
-}
-
-function asciiString(bytes: Uint8Array): string {
-    bytes.forEach((b) => {
-        if (b < 32 || b > 126) {
-            throw Error("invalid non-ASCII byte in header")
-        }
-    })
-    return new TextDecoder().decode(bytes)
-}
-
-function prependToStream(prefix: Uint8Array, s: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
-    const reader = s.getReader()
-    return new ReadableStream({
-        start(controller) {
-            controller.enqueue(prefix)
-        },
-        async pull(controller) {
-            const { done, value } = await reader.read()
-            if (done) {
-                controller.close()
-                return
-            }
-            controller.enqueue(value)
-        },
-        cancel(reason) {
-            return s.cancel(reason)
-        },
-    })
 }
 
 export async function parseHeader(header: ReadableStream<Uint8Array>): Promise<{
     stanzas: Stanza[], MAC: Uint8Array, headerNoMAC: Uint8Array, rest: ReadableStream<Uint8Array>,
 }> {
-    const hdr = new ByteReader(header)
+    const hdr = new LineReader(header)
     const versionLine = await hdr.readLine()
     if (versionLine !== "age-encryption.org/v1") {
         throw Error("invalid version " + (versionLine ?? "line"))
@@ -162,7 +83,7 @@ export async function parseHeader(header: ReadableStream<Uint8Array>): Promise<{
         const MAC = base64nopad.decode(macLine.slice(4))
         const { rest, transcript } = hdr.close()
         const headerNoMAC = transcript.slice(0, transcript.length - 1 - macLine.length + 3)
-        return { stanzas, headerNoMAC, MAC, rest: prependToStream(rest, header) }
+        return { stanzas, headerNoMAC, MAC, rest: prepend(header, rest) }
     }
 }
 
@@ -185,7 +106,7 @@ export function encodeHeaderNoMAC(recipients: Stanza[]): Uint8Array {
 }
 
 export function encodeHeader(recipients: Stanza[], MAC: Uint8Array): Uint8Array {
-    return flattenArray([
+    return flatten([
         encodeHeaderNoMAC(recipients),
         new TextEncoder().encode(" " + base64nopad.encode(MAC) + "\n")
     ])

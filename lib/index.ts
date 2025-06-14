@@ -5,6 +5,7 @@ import { randomBytes } from "@noble/hashes/utils"
 import { ScryptIdentity, ScryptRecipient, X25519Identity, X25519Recipient } from "./recipients.js"
 import { encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./format.js"
 import { decryptSTREAM, encryptSTREAM } from "./stream.js"
+import { readAll, stream, read, readAllString, prepend } from "./io.js"
 
 export * as armor from "./armor.js"
 
@@ -161,13 +162,10 @@ export class Encrypter {
 
         const nonce = randomBytes(16)
         const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
-        const payload = encryptSTREAM(streamKey, file)
+        const encrypter = encryptSTREAM(streamKey)
 
-        const out = new Uint8Array(header.length + nonce.length + payload.length)
-        out.set(header)
-        out.set(nonce, header.length)
-        out.set(payload, header.length + nonce.length)
-        return out
+        const payload = stream(file).pipeThrough(encrypter)
+        return await readAll(prepend(payload, header, nonce))
     }
 }
 
@@ -235,17 +233,15 @@ export class Decrypter {
     async decrypt(file: Uint8Array, outputFormat?: "uint8array"): Promise<Uint8Array>
     async decrypt(file: Uint8Array, outputFormat: "text"): Promise<string>
     async decrypt(file: Uint8Array, outputFormat?: "text" | "uint8array"): Promise<string | Uint8Array> {
-        const stream = StreamFromUint8Array(file)
-        const { fileKey, rest: r } = await this.decryptHeaderInternal(stream)
-        const rest = await Uint8ArrayFromStream(r)
+        const { fileKey, rest } = await this.decryptHeaderInternal(stream(file))
+        const { data: nonce, rest: payload } = await read(rest, 16)
 
-        const nonce = rest.subarray(0, 16)
         const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
-        const payload = rest.subarray(16)
+        const decrypter = decryptSTREAM(streamKey)
+        const out = payload.pipeThrough(decrypter)
 
-        const out = decryptSTREAM(streamKey, payload)
-        if (outputFormat === "text") return new TextDecoder().decode(out)
-        return out
+        if (outputFormat === "text") return await readAllString(out)
+        return await readAll(out)
     }
 
     /**
@@ -262,7 +258,7 @@ export class Decrypter {
      * @returns The file key used to encrypt the file.
      */
     async decryptHeader(header: Uint8Array): Promise<Uint8Array> {
-        return (await this.decryptHeaderInternal(StreamFromUint8Array(header))).fileKey
+        return (await this.decryptHeaderInternal(stream(header))).fileKey
     }
 
     private async decryptHeaderInternal(file: ReadableStream<Uint8Array>): Promise<{ fileKey: Uint8Array, rest: ReadableStream<Uint8Array> }> {
@@ -297,18 +293,4 @@ function compareBytes(a: Uint8Array, b: Uint8Array): boolean {
 
 function isCryptoKey(key: unknown): key is CryptoKey {
     return typeof CryptoKey !== "undefined" && key instanceof CryptoKey
-}
-
-function StreamFromUint8Array(a: Uint8Array): ReadableStream<Uint8Array> {
-    // https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream/from_static
-    return new ReadableStream({
-        start(controller) {
-            controller.enqueue(a)
-            controller.close()
-        }
-    })
-}
-
-async function Uint8ArrayFromStream(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
-    return new Uint8Array(await new Response(stream).arrayBuffer())
 }
