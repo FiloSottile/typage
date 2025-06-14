@@ -1,6 +1,6 @@
 import { describe, it, assert, onTestFinished, expect } from "vitest"
 import { Decrypter, Encrypter, generateIdentity, identityToRecipient } from "../lib/index.js"
-import { forceWebCryptoOff, isX25519Supported } from "../lib/x25519.js"
+import { forceWebCryptoOff, webCryptoFallback } from "../lib/x25519.js"
 import { base64nopad } from "@scure/base"
 
 describe("AgeDecrypter", function () {
@@ -72,13 +72,15 @@ describe("AgeEncrypter", function () {
         assert.deepEqual(out, "age")
     })
     it("should encrypt (and decrypt) a file with a CryptoKey", async function (context) {
-        if (!await isX25519Supported()) {
+        const keyPair = await webCryptoFallback(async () => {
+            return await crypto.subtle.generateKey({ name: "X25519" }, false, ["deriveBits"])
+        }, () => { return null })
+        if (keyPair === null) {
             context.skip()
             return
         }
-
-        const keyPair = await crypto.subtle.generateKey({ name: "X25519" }, false, ["deriveBits"])
-        const identity = (keyPair as CryptoKeyPair).privateKey
+        if (keyPair instanceof CryptoKey) throw new Error("expected a CryptoKeyPair")
+        const identity = keyPair.privateKey
         const recipient = await identityToRecipient(identity)
 
         const e = new Encrypter()
