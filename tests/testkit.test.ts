@@ -66,20 +66,22 @@ describe("CCTV testkit", async function () {
                         normalize(new TextDecoder().decode(vec.body)))
                 })
             }
-            it(vec.name + " should round-trip header encoding", function () {
-                const h = parseHeader(body())
+            it(vec.name + " should round-trip header encoding", async function () {
+                const h = await parseHeader(stream(body()))
+                const rest = await readAll(h.rest)
                 assert.deepEqual(encodeHeaderNoMAC(h.stanzas), h.headerNoMAC)
                 const hh = encodeHeader(h.stanzas, h.MAC)
-                const got = new Uint8Array(hh.length + h.rest.length)
+                const got = new Uint8Array(hh.length + rest.length)
                 got.set(hh)
-                got.set(h.rest, hh.length)
+                got.set(rest, hh.length)
                 assert.deepEqual(got, body())
             })
-            it(vec.name + " should round-trip STREAM encryption", function () {
-                const h = parseHeader(body())
-                const nonce = h.rest.subarray(0, 16)
+            it(vec.name + " should round-trip STREAM encryption", async function () {
+                const h = await parseHeader(stream(body()))
+                const rest = await readAll(h.rest)
+                const nonce = rest.subarray(0, 16)
                 const streamKey = hkdf(sha256, hex.decode(vec.meta["file key"]), nonce, "payload", 32)
-                const payload = h.rest.subarray(16)
+                const payload = rest.subarray(16)
                 const plaintext = decryptSTREAM(streamKey, payload)
                 assert.deepEqual(encryptSTREAM(streamKey, plaintext), payload)
             })
@@ -114,4 +116,17 @@ function findSeparator(data: Uint8Array): number {
         }
     }
     throw Error("no separator found")
+}
+
+function stream(a: Uint8Array): ReadableStream<Uint8Array> {
+    return new ReadableStream({
+        start(controller) {
+            controller.enqueue(a)
+            controller.close()
+        }
+    })
+}
+
+async function readAll(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
+    return new Uint8Array(await new Response(stream).arrayBuffer())
 }
