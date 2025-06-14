@@ -17,7 +17,7 @@ bench("scalarMultBase/noble", withWebCryptoOff(async () => {
     await x25519.scalarMultBase(scalar)
 }))
 
-if (await x25519.isX25519Supported()) {
+await x25519.webCryptoFallback(async () => {
     const cryptoKey = await crypto.subtle.generateKey({ name: "X25519" }, false, ["deriveBits"])
     if (cryptoKey instanceof CryptoKey) throw new Error("expected a CryptoKeyPair")
 
@@ -34,4 +34,4 @@ if (await x25519.isX25519Supported()) {
     bench("scalarMultBase/cryptokey", async () => {
         await x25519.scalarMultBase(cryptoKey.privateKey)
     })
-}
+}, () => { /* no fallback needed */ })

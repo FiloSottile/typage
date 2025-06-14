@@ -8,53 +8,59 @@ export function forceWebCryptoOff(off: boolean) {
     webCryptoOff = off
 }
 
-export const isX25519Supported = (() => {
-    let supported: boolean | undefined
-    return async () => {
-        if (supported === undefined) {
-            try {
-                await crypto.subtle.importKey("raw", x25519.GuBytes, { name: "X25519" }, exportable, [])
-                supported = true
-            } catch { supported = false }
-        }
-        return supported
+export async function webCryptoFallback<Return>(
+    func: () => Return | Promise<Return>,
+    fallback: () => Return | Promise<Return>,
+): Promise<Return> {
+    if (webCryptoOff) {
+        return await fallback()
     }
-})()
+    // We can't reliably detect X25519 support in WebCrypto in a performant way
+    // because Bun implemented importKey, but not deriveBits.
+    // https://github.com/oven-sh/bun/issues/20148
+    try {
+        return await func()
+    } catch (error) {
+        if (error instanceof ReferenceError ||
+            error instanceof DOMException && error.name === "NotSupportedError") {
+            return await fallback()
+        } else {
+            throw error
+        }
+    }
+}
 
 export async function scalarMult(scalar: Uint8Array | CryptoKey, u: Uint8Array): Promise<Uint8Array> {
-    if (!(await isX25519Supported()) || webCryptoOff) {
+    return await webCryptoFallback(async () => {
+        const key = isCryptoKey(scalar) ? scalar : await importX25519Key(scalar)
+        const peer = await crypto.subtle.importKey("raw", u, { name: "X25519" }, exportable, [])
+        // 256 bits is the fixed size of a X25519 shared secret. It's kind of
+        // worrying that the WebCrypto API encourages truncating it.
+        return new Uint8Array(await crypto.subtle.deriveBits({ name: "X25519", public: peer }, key, 256))
+    }, () => {
         if (isCryptoKey(scalar)) {
             throw new Error("CryptoKey provided but X25519 WebCrypto is not supported")
         }
         return x25519.scalarMult(scalar, u)
-    }
-    let key: CryptoKey
-    if (isCryptoKey(scalar)) {
-        key = scalar
-    } else {
-        key = await importX25519Key(scalar)
-    }
-    const peer = await crypto.subtle.importKey("raw", u, { name: "X25519" }, exportable, [])
-    // 256 bits is the fixed size of a X25519 shared secret. It's kind of
-    // worrying that the WebCrypto API encourages truncating it.
-    return new Uint8Array(await crypto.subtle.deriveBits({ name: "X25519", public: peer }, key, 256))
+    })
 }
 
 export async function scalarMultBase(scalar: Uint8Array | CryptoKey): Promise<Uint8Array> {
-    if (!(await isX25519Supported()) || webCryptoOff) {
+    return await webCryptoFallback(async () => {
+        // The WebCrypto API simply doesn't support deriving public keys from
+        // private keys. importKey returns only a CryptoKey (unlike generateKey
+        // which returns a CryptoKeyPair) despite deriving the public key internally
+        // (judging from the banchmarks, at least on Node.js). Our options are
+        // exporting as JWK, deleting jwk.d, and re-importing (which only works for
+        // exportable keys), or (re-)doing a scalar multiplication by the basepoint
+        // manually. Here we do the latter.
+        return scalarMult(scalar, x25519.GuBytes)
+    }, () => {
         if (isCryptoKey(scalar)) {
             throw new Error("CryptoKey provided but X25519 WebCrypto is not supported")
         }
         return x25519.scalarMultBase(scalar)
-    }
-    // The WebCrypto API simply doesn't support deriving public keys from
-    // private keys. importKey returns only a CryptoKey (unlike generateKey
-    // which returns a CryptoKeyPair) despite deriving the public key internally
-    // (judging from the banchmarks, at least on Node.js). Our options are
-    // exporting as JWK, deleting jwk.d, and re-importing (which only works for
-    // exportable keys), or (re-)doing a scalar multiplication by the basepoint
-    // manually. Here we do the latter.
-    return scalarMult(scalar, x25519.GuBytes)
+    })
 }
 
 const pkcs8Prefix = /* @__PURE__ */ new Uint8Array([
