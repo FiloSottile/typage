@@ -1,17 +1,10 @@
 import { describe, it, assert } from "vitest"
 import { base64nopad } from "@scure/base"
 import { encodeHeader, encodeHeaderNoMAC, parseHeader } from "../lib/format.js"
+import { stream, readAll } from "../lib/io.js"
 
 const to_string = (a: Uint8Array): string => new TextDecoder().decode(a)
 const from_string = (s: string): Uint8Array => new TextEncoder().encode(s)
-const stream = (a: Uint8Array): ReadableStream<Uint8Array> => new ReadableStream({
-    start(controller) {
-        controller.enqueue(a)
-        controller.close()
-    }
-})
-const readAll = async (s: ReadableStream<Uint8Array>): Promise<Uint8Array> =>
-    new Uint8Array(await new Response(s).arrayBuffer())
 
 const exampleHeader = `age-encryption.org/v1
 -> X25519 abc
