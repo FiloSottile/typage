@@ -98,6 +98,28 @@ const out = await d.decrypt(ciphertext, "text")
 console.log(out)
 ```
 
+#### Encrypt and decrypt using the Streams API
+
+You can also encrypt and decrypt [ReadableStreams][]. This can be useful for
+encrypting or decrypting large files, requests, or responses on the fly.
+
+```ts
+import { Encrypter, Decrypter } from "age-encryption"
+
+const file = new File([new TextEncoder().encode("age")], "age.txt")
+
+const e = new Encrypter()
+e.setScryptWorkFactor(12)
+e.setPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
+const encryptedStream = await e.encrypt(file.stream())
+
+const d = new Decrypter()
+d.addPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
+const decryptedStream = await d.decrypt(encryptedStream)
+
+console.log(await new Response(decryptedStream).text())
+```
+
 ### Browser usage
 
 `age-encryption` is compatible with modern bundlers such as [esbuild](https://esbuild.github.io/).

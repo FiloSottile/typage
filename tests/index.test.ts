@@ -1,7 +1,9 @@
 import { describe, it, assert, onTestFinished, expect } from "vitest"
 import { Decrypter, Encrypter, generateIdentity, identityToRecipient } from "../lib/index.js"
 import { forceWebCryptoOff, webCryptoFallback } from "../lib/x25519.js"
+import { randomBytesStream, readAll } from "../lib/io.js"
 import { base64nopad } from "@scure/base"
+import { sha256 } from "@noble/hashes/sha256"
 
 describe("AgeDecrypter", function () {
     it("should decrypt a file with the right passphrase", async function () {
@@ -114,6 +116,35 @@ describe("AgeEncrypter", function () {
 
         assert.deepEqual(out, "age")
     })
+    it.for([
+        [0, 1], [1, 1],
+        [65536 - 1, 100],
+        [65536 - 1, 128],
+        [65536, 100],
+        [65536, 128],
+        [65536 + 1, 100],
+        [65536 + 1, 128],
+        [65536 * 2 - 1, 100],
+        [65536 * 2 - 1, 128],
+        [65536 * 2, 100],
+        [65536 * 2, 128],
+        [65536 * 2 + 1, 100],
+        [65536 * 2 + 1, 128],
+    ])("should encrypt (and decrypt) a file with ReadableStream", async function ([size, chunk]: number[]) {
+        const e = new Encrypter()
+        const d = new Decrypter()
+        e.setScryptWorkFactor(12)
+        e.setPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
+        d.addPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
+
+        const source = randomBytesStream(size, chunk)
+        const sourceHash = new HashingTransformStream()
+        const encrypted = await e.encrypt(source.pipeThrough(sourceHash))
+        const decrypted = await d.decrypt(encrypted)
+        const decryptedHash = new HashingTransformStream()
+        await readAll(decrypted.pipeThrough(decryptedHash))
+        assert.deepEqual(sourceHash.digest, decryptedHash.digest)
+    })
     it("should throw when using multiple passphrases", function () {
         const e = new Encrypter()
         e.setPassphrase("1")
@@ -167,3 +198,19 @@ describe.skipIf(expect.getState().environment !== "node")("esbuild", function ()
         assert.equal(result.outputFiles[0].text, "(() => {\n})();\n")
     })
 })
+
+class HashingTransformStream extends TransformStream<Uint8Array, Uint8Array> {
+    digest: Uint8Array | null = null
+    constructor() {
+        const h = sha256.create()
+        super({
+            transform: (chunk, controller) => {
+                h.update(chunk)
+                controller.enqueue(chunk)
+            },
+            flush: () => {
+                this.digest = h.digest()
+            }
+        })
+    }
+}
