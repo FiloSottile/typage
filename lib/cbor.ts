@@ -58,7 +58,8 @@ export function readTextString(b: Uint8Array): [string, Uint8Array] {
     if (minor > rest.length) {
         throw Error("cbor: unexpected EOF")
     }
-    return [new TextDecoder().decode(rest.subarray(0, minor)), rest.subarray(minor)]
+    const decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true })
+    return [decoder.decode(rest.subarray(0, minor)), rest.subarray(minor)]
 }
 
 export function readArray(b: Uint8Array): [string[], Uint8Array] {
