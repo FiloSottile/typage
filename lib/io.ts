@@ -1,3 +1,5 @@
+import { randomBytes } from "@noble/hashes/utils"
+
 export class LineReader {
     private s: ReadableStreamDefaultReader<Uint8Array>
     private transcript: Uint8Array[] = []
@@ -77,11 +79,17 @@ export function stream(a: Uint8Array): ReadableStream<Uint8Array> {
     })
 }
 
-export async function readAll(stream: ReadableStream): Promise<Uint8Array> {
+export async function readAll(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
+    if (!(stream instanceof ReadableStream)) {
+        throw new Error("readAll expects a ReadableStream<Uint8Array>")
+    }
     return new Uint8Array(await new Response(stream).arrayBuffer())
 }
 
 export async function readAllString(stream: ReadableStream): Promise<string> {
+    if (!(stream instanceof ReadableStream)) {
+        throw new Error("readAllString expects a ReadableStream<Uint8Array>")
+    }
     return await new Response(stream).text()
 }
 
@@ -105,4 +113,15 @@ export async function read(stream: ReadableStream<Uint8Array>, n: number): Promi
     const rest = prepend(stream, buf.subarray(n))
 
     return { data, rest }
+}
+
+export function randomBytesStream(n: number, chunk: number): ReadableStream<Uint8Array> {
+    return new ReadableStream({
+        start(controller) {
+            for (let i = 0; i < n; i += chunk) {
+                controller.enqueue(randomBytes(Math.min(chunk, n - i)))
+            }
+            controller.close()
+        }
+    })
 }
