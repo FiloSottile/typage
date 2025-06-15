@@ -138,13 +138,12 @@ export class Encrypter {
      * @param file - The file to encrypt. If a string is passed, it will be
      * encoded as UTF-8.
      *
-     * @returns A promise that resolves to the encrypted file as a Uint8Array.
+     * @returns A promise that resolves to the encrypted file as a Uint8Array,
+     * or as a ReadableStream if the input was a stream.
      */
-    async encrypt(file: Uint8Array | string): Promise<Uint8Array> {
-        if (typeof file === "string") {
-            file = new TextEncoder().encode(file)
-        }
-
+    async encrypt(file: Uint8Array | string): Promise<Uint8Array>
+    async encrypt(file: ReadableStream<Uint8Array>): Promise<ReadableStream<Uint8Array>>
+    async encrypt(file: Uint8Array | string | ReadableStream<Uint8Array>): Promise<Uint8Array | ReadableStream<Uint8Array>> {
         const fileKey = randomBytes(16)
         const stanzas: Stanza[] = []
 
@@ -164,8 +163,9 @@ export class Encrypter {
         const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
         const encrypter = encryptSTREAM(streamKey)
 
-        const payload = stream(file).pipeThrough(encrypter)
-        return await readAll(prepend(payload, header, nonce))
+        if (file instanceof ReadableStream) return prepend(file.pipeThrough(encrypter), header, nonce)
+        if (typeof file === "string") file = new TextEncoder().encode(file)
+        return await readAll(prepend(stream(file).pipeThrough(encrypter), header, nonce))
     }
 }
 
@@ -227,19 +227,25 @@ export class Decrypter {
      * @param outputFormat - The format to return the decrypted file in. If
      * `"text"` is passed, the file's plaintext will be decoded as UTF-8 and
      * returned as a string. Optional. It defaults to `"uint8array"`.
+     * Ignored if the input is a stream.
      *
-     * @returns A promise that resolves to the decrypted file.
+     * @returns A promise that resolves to the decrypted file, or to a
+     * ReadableStream of the decrypted file if the input was a stream.
+     * The header is processed before the promise resolves.
      */
     async decrypt(file: Uint8Array, outputFormat?: "uint8array"): Promise<Uint8Array>
     async decrypt(file: Uint8Array, outputFormat: "text"): Promise<string>
-    async decrypt(file: Uint8Array, outputFormat?: "text" | "uint8array"): Promise<string | Uint8Array> {
-        const { fileKey, rest } = await this.decryptHeaderInternal(stream(file))
+    async decrypt(file: ReadableStream<Uint8Array>): Promise<ReadableStream<Uint8Array>>
+    async decrypt(file: Uint8Array | ReadableStream<Uint8Array>, outputFormat?: "text" | "uint8array"): Promise<string | Uint8Array | ReadableStream<Uint8Array>> {
+        const s = file instanceof ReadableStream ? file : stream(file)
+        const { fileKey, rest } = await this.decryptHeaderInternal(s)
         const { data: nonce, rest: payload } = await read(rest, 16)
 
         const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
         const decrypter = decryptSTREAM(streamKey)
         const out = payload.pipeThrough(decrypter)
 
+        if (file instanceof ReadableStream) return out
         if (outputFormat === "text") return await readAllString(out)
         return await readAll(out)
     }
