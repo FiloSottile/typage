@@ -32,7 +32,7 @@ class ByteReader {
 
     private toString(bytes: Uint8Array): string {
         bytes.forEach((b) => {
-            if (b < 32 || b > 136) {
+            if (b < 32 || b > 126) {
                 throw Error("invalid non-ASCII byte in header")
             }
         })
