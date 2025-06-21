@@ -61,7 +61,9 @@ async function parseNextStanza(hdr: LineReader): Promise<{ s: Stanza, next?: nev
 }
 
 export async function parseHeader(header: ReadableStream<Uint8Array>): Promise<{
-    stanzas: Stanza[], MAC: Uint8Array, headerNoMAC: Uint8Array, rest: ReadableStream<Uint8Array>,
+    stanzas: Stanza[], MAC: Uint8Array,
+    headerNoMAC: Uint8Array, headerSize: number,
+    rest: ReadableStream<Uint8Array>,
 }> {
     const hdr = new LineReader(header)
     const versionLine = await hdr.readLine()
@@ -83,7 +85,7 @@ export async function parseHeader(header: ReadableStream<Uint8Array>): Promise<{
         const MAC = base64nopad.decode(macLine.slice(4))
         const { rest, transcript } = hdr.close()
         const headerNoMAC = transcript.slice(0, transcript.length - 1 - macLine.length + 3)
-        return { stanzas, headerNoMAC, MAC, rest: prepend(header, rest) }
+        return { stanzas, headerNoMAC, MAC, headerSize: transcript.length, rest: prepend(header, rest) }
     }
 }
 
