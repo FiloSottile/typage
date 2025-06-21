@@ -112,10 +112,12 @@ const e = new Encrypter()
 e.setScryptWorkFactor(12)
 e.setPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
 const encryptedStream = await e.encrypt(file.stream())
+console.log(encryptedStream.size(file.size))
 
 const d = new Decrypter()
 d.addPassphrase("light-original-energy-average-wish-blind-vendor-pencil-illness-scorpion")
 const decryptedStream = await d.decrypt(encryptedStream)
+console.log(decryptedStream.size(encryptedStream.size(file.size)))
 
 console.log(await new Response(decryptedStream).text())
 ```

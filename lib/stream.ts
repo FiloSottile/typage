@@ -48,6 +48,24 @@ export function decryptSTREAM(key: Uint8Array): TransformStream<Uint8Array, Uint
     })
 }
 
+export function plaintextSize(ciphertextSize: number): number {
+    if (ciphertextSize < chacha20poly1305Overhead) {
+        throw Error("ciphertext is too small")
+    }
+    if (ciphertextSize === chacha20poly1305Overhead) {
+        return 0 // Empty plaintext.
+    }
+    const fullChunks = Math.floor(ciphertextSize / chunkSizeWithOverhead)
+    const lastChunk = ciphertextSize % chunkSizeWithOverhead
+    if (0 < lastChunk && lastChunk <= chacha20poly1305Overhead) {
+        throw Error("ciphertext size is invalid")
+    }
+    let size = ciphertextSize
+    size -= fullChunks * chacha20poly1305Overhead
+    size -= lastChunk > 0 ? chacha20poly1305Overhead : 0
+    return size
+}
+
 export function encryptSTREAM(key: Uint8Array): TransformStream<Uint8Array, Uint8Array> {
     const streamNonce = new Uint8Array(12)
     const incNonce = () => {
@@ -83,4 +101,9 @@ export function encryptSTREAM(key: Uint8Array): TransformStream<Uint8Array, Uint
             controller.enqueue(encryptedChunk)
         },
     })
+}
+
+export function ciphertextSize(plaintextSize: number): number {
+    const chunks = Math.max(1, Math.ceil(plaintextSize / chunkSize))
+    return plaintextSize + chacha20poly1305Overhead * chunks
 }

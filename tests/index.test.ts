@@ -140,9 +140,14 @@ describe("AgeEncrypter", function () {
         const source = randomBytesStream(size, chunk)
         const sourceHash = new HashingTransformStream()
         const encrypted = await e.encrypt(source.pipeThrough(sourceHash))
-        const decrypted = await d.decrypt(encrypted)
+        const expectedCiphertextSize = encrypted.size(size)
+        const ciphertextSize = new SizeTransformStream()
+        const encryptedWithSize = encrypted.pipeThrough(ciphertextSize)
+        const decrypted = await d.decrypt(encryptedWithSize)
+        assert.equal(size, decrypted.size(expectedCiphertextSize))
         const decryptedHash = new HashingTransformStream()
         await readAll(decrypted.pipeThrough(decryptedHash))
+        assert.equal(ciphertextSize.size, expectedCiphertextSize)
         assert.deepEqual(sourceHash.digest, decryptedHash.digest)
     })
     it("should throw when using multiple passphrases", function () {
@@ -210,6 +215,18 @@ class HashingTransformStream extends TransformStream<Uint8Array, Uint8Array> {
             },
             flush: () => {
                 this.digest = h.digest()
+            }
+        })
+    }
+}
+
+class SizeTransformStream extends TransformStream<Uint8Array, Uint8Array> {
+    size = 0
+    constructor() {
+        super({
+            transform: (chunk, controller) => {
+                this.size += chunk.length
+                controller.enqueue(chunk)
             }
         })
     }
