@@ -103,6 +103,8 @@ console.log(out)
 You can also encrypt and decrypt [ReadableStreams][]. This can be useful for
 encrypting or decrypting large files, requests, or responses on the fly.
 
+[ReadableStreams]: https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream
+
 ```ts
 import { Encrypter, Decrypter } from "age-encryption"
 
