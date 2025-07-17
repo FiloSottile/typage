@@ -41,21 +41,21 @@
         "prepublishOnly": "npm run build"
     },
     "devDependencies": {
-        "@eslint/js": "9.18.0",
-        "@fast-check/vitest": "0.1.4",
+        "@eslint/js": "9.31.0",
+        "@fast-check/vitest": "0.2.2",
         "@stylistic/eslint-plugin": "2.13.0",
-        "@types/node": "22.10.5",
-        "@vitest/browser": "2.1.8",
+        "@types/node": "22.16.4",
+        "@vitest/browser": "2.1.9",
         "cctv-age": "0.1.2",
-        "esbuild": "0.24.2",
-        "eslint": "9.18.0",
+        "esbuild": "0.25.6",
+        "eslint": "9.31.0",
         "eslint-plugin-tsdoc": "0.4.0",
-        "typedoc": "0.27.6",
-        "typedoc-plugin-markdown": "4.4.1",
-        "typescript": "5.7.2",
-        "typescript-eslint": "8.20.0",
-        "vitest": "2.1.8",
-        "webdriverio": "9.5.1"
+        "typedoc": "0.28.7",
+        "typedoc-plugin-markdown": "4.7.0",
+        "typescript": "5.8.3",
+        "typescript-eslint": "8.37.0",
+        "vitest": "2.1.9",
+        "webdriverio": "9.18.1"
     },
     "author": "Filippo Valsorda <npm@filippo.io> (https://filippo.io)",
     "license": "BSD-3-Clause"

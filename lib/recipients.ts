@@ -7,7 +7,7 @@ import { randomBytes } from "@noble/hashes/utils"
 import { base64nopad } from "@scure/base"
 import * as x25519 from "./x25519.js"
 import { Stanza } from "./format.js"
-import { Identity, Recipient } from "./index.js"
+import { type Identity, type Recipient } from "./index.js"
 
 /**
  * Generate a new native age identity.

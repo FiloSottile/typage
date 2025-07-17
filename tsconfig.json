@@ -1,9 +1,9 @@
 {
     "compilerOptions": {
         "strict": true,
-        "esModuleInterop": true,
-        "isolatedModules": true,
         "target": "ESNext",
         "module": "NodeNext",
+        "erasableSyntaxOnly": true,
+        "verbatimModuleSyntax": true
     },
 }
