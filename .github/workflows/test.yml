@@ -12,9 +12,9 @@ jobs:
     strategy:
       matrix:
         node-version:
-          - 18.x # Maintenance LTS as of 2025-01
-          - 20.x # Maintenance LTS as of 2025-01
-          - 22.x # Active LTS as of 2025-01
+          - 20.x # Maintenance LTS as of 2025-07
+          - 22.x # Active LTS as of 2025-07
+          - 24.x # Current as of 2025-07
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,7 +36,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 24.x
       - run: npm update
       - run: npm run build
       - run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
@@ -49,7 +49,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 24.x
       - uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
@@ -66,7 +66,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 24.x
       - uses: denoland/setup-deno@v2
         with:
           deno-version: vx.x.x
@@ -81,7 +81,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 24.x
       - run: npm update
       - run: npm run build
       - run: npm run examples:yarn
@@ -93,7 +93,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 24.x
       - uses: pnpm/action-setup@v4
         with:
           version: latest

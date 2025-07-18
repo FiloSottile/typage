@@ -44,7 +44,7 @@
         "@eslint/js": "9.31.0",
         "@fast-check/vitest": "0.2.2",
         "@stylistic/eslint-plugin": "5.2.0",
-        "@types/node": "22.16.4",
+        "@types/node": "24.0.14",
         "@vitest/browser": "2.1.9",
         "cctv-age": "0.1.2",
         "esbuild": "0.25.6",
