@@ -3,7 +3,7 @@ import { Decrypter, Encrypter, generateIdentity, identityToRecipient } from "../
 import { forceWebCryptoOff, webCryptoFallback } from "../lib/x25519.js"
 import { randomBytesStream, readAll } from "../lib/io.js"
 import { base64nopad } from "@scure/base"
-import { sha256 } from "@noble/hashes/sha256"
+import { sha256 } from "@noble/hashes/sha2"
 
 describe("AgeDecrypter", function () {
     it("should decrypt a file with the right passphrase", async function () {
@@ -193,7 +193,7 @@ describe.skipIf(expect.getState().environment !== "node")("esbuild", function ()
         const result = await (await import("esbuild")).build({
             stdin: {
                 // Not using "age-encryption" to load the TS files directly.
-                contents: `import * as age from "./lib/index.js"`,
+                contents: 'import * as age from "./lib/index.js"',
                 resolveDir: __dirname + "/..",
             },
             bundle: true,

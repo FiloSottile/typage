@@ -1,6 +1,6 @@
 import { bech32 } from "@scure/base"
 import { hkdf } from "@noble/hashes/hkdf"
-import { sha256 } from "@noble/hashes/sha256"
+import { sha256 } from "@noble/hashes/sha2"
 import { scrypt } from "@noble/hashes/scrypt"
 import { chacha20poly1305 } from "@noble/ciphers/chacha"
 import { randomBytes } from "@noble/hashes/utils"

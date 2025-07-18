@@ -1,7 +1,7 @@
 import { bech32, base64nopad } from "@scure/base"
 import { randomBytes } from "@noble/hashes/utils"
 import { extract } from "@noble/hashes/hkdf"
-import { sha256 } from "@noble/hashes/sha256"
+import { sha256 } from "@noble/hashes/sha2"
 import { type Identity, type Recipient } from "./index.js"
 import { Stanza } from "./format.js"
 import { decryptFileKey, encryptFileKey } from "./recipients.js"

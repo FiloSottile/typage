@@ -8,7 +8,7 @@ export default tseslint.config(
     { ignores: ["dist/", "tests/examples/age.js"] },
 
     eslint.configs.recommended,
-    tseslint.configs.recommendedTypeChecked,
+    tseslint.configs.strictTypeChecked,
     tseslint.configs.stylisticTypeChecked,
 
     {
@@ -27,7 +27,7 @@ export default tseslint.config(
         },
         rules: {
             "@stylistic/semi": ["error", "never"],
-            "@stylistic/quotes": ["error", "double", { "allowTemplateLiterals": true /*"avoidEscape"*/ }],
+            "@stylistic/quotes": ["error", "double", { "avoidEscape": true }],
             "@stylistic/brace-style": ["error", "1tbs", { "allowSingleLine": true }],
             "@stylistic/indent": ["error", 4],
             "curly": ["error", "multi-line"],
@@ -37,6 +37,7 @@ export default tseslint.config(
             "prefer-const": "error",
             "no-constant-binary-expression": "error",
             "no-self-compare": "error",
+            "@typescript-eslint/no-unnecessary-condition": ["error", { allowConstantLoopConditions: "only-allowed-literals" }],
 
             "tsdoc/syntax": "error"
         }

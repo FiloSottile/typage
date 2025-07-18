@@ -101,7 +101,7 @@ export async function read(stream: ReadableStream<Uint8Array>, n: number): Promi
     while (readBytes < n) {
         const { done, value } = await reader.read()
         if (done) {
-            throw Error("stream ended before reading " + n + " bytes")
+            throw Error("stream ended before reading " + n.toString() + " bytes")
         }
         chunks.push(value)
         readBytes += value.length

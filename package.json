@@ -43,7 +43,7 @@
     "devDependencies": {
         "@eslint/js": "9.31.0",
         "@fast-check/vitest": "0.2.2",
-        "@stylistic/eslint-plugin": "2.13.0",
+        "@stylistic/eslint-plugin": "5.2.0",
         "@types/node": "22.16.4",
         "@vitest/browser": "2.1.9",
         "cctv-age": "0.1.2",

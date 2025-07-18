@@ -8,7 +8,7 @@ describe("stream", function () {
         64 * 1024 * 2 - 1, 64 * 1024 * 2, 64 * 1024 * 2 + 1
     ])("should round-trip plaintext size and ciphertext size", function (ps) {
         assert.equal(ps, plaintextSize(ciphertextSize(ps)),
-            `plaintextSize(ciphertextSize(${ps})) should return ${ps}`)
+            `plaintextSize(ciphertextSize(${ps.toString()})) should return ${ps.toString()}`)
     })
     it.for([
         0, 1, 15,
