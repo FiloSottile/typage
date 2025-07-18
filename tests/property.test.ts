@@ -5,7 +5,7 @@ import { Decrypter, Encrypter, generateIdentity, identityToRecipient } from "../
 fc.configureGlobal({
     // increasing this value will make fast-check do more random test runs,
     // which might be good for intensive testing, but also makes them slower.
-    numRuns: 50
+    numRuns: typeof process !== "undefined" && process.env.SLOW ? 100 : 10,
 })
 
 const isEqualUInt8Array = (a: Uint8Array, b: Uint8Array) => {

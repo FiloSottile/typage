@@ -45,7 +45,7 @@
         "@fast-check/vitest": "0.2.2",
         "@stylistic/eslint-plugin": "5.2.0",
         "@types/node": "24.0.14",
-        "@vitest/browser": "2.1.9",
+        "@vitest/browser": "3.2.4",
         "cctv-age": "0.1.2",
         "esbuild": "0.25.6",
         "eslint": "9.31.0",
@@ -54,7 +54,7 @@
         "typedoc-plugin-markdown": "4.7.0",
         "typescript": "5.8.3",
         "typescript-eslint": "8.37.0",
-        "vitest": "2.1.9",
+        "vitest": "3.2.4",
         "webdriverio": "9.18.1"
     },
     "author": "Filippo Valsorda <npm@filippo.io> (https://filippo.io)",
