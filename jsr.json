@@ -1,0 +1,6 @@
+{
+    "name": "@age/age-encryption",
+    "version": "0.2.5",
+    "exports": "./lib/index.ts",
+    "license": "BSD-3-Clause"
+}

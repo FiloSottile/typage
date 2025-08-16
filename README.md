@@ -18,15 +18,21 @@ Go library for FIDO2 tokens.
 
 ## Installation
 
+This package is `age-encryption` on npm, and `jsr:@age/age-encryption` on JSR.
+
+It's compiled for ES2023, and compatible with Node.js 20+, Bun, Deno, and all recent browsers.
+
 ```sh
 npm install age-encryption
+```
+
+```sh
+deno add jsr:@age/age-encryption
 ```
 
 ## Usage
 
 `age-encryption` is a modern ES Module with built-in types.
-
-It's compiled for ES2023, and compatible with Node.js 20+, Bun, Deno, and all recent browsers.
 
 #### Encrypt and decrypt a file with a new recipient / identity pair
 
