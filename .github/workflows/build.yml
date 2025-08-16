@@ -4,6 +4,7 @@ on:
     types: [published]
   push:
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -40,7 +41,7 @@ jobs:
             typage.js
             typage.min.js
   upload:
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
     needs: [build, test]
     permissions:
       contents: write
@@ -62,7 +63,7 @@ jobs:
         with:
           subject-path: "age-*.js"
   publish:
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
     needs: upload
     permissions:
       id-token: write
@@ -75,8 +76,8 @@ jobs:
         with:
           node-version: 24.x
           registry-url: "https://registry.npmjs.org"
-      - run: npx jsr publish
       - run: npm clean-install
+      - run: npx jsr publish
       - run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
