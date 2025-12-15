@@ -76,7 +76,7 @@ async function importX25519Key(key: Uint8Array): Promise<CryptoKey> {
         throw new Error("X25519 private key must be 32 bytes")
     }
     const pkcs8 = new Uint8Array([...pkcs8Prefix, ...key])
-    // Annoingly, importKey (at least on Node.js) computes the public key, which
+    // Annoyingly, importKey (at least on Node.js) computes the public key, which
     // is a waste if we're only going to run deriveBits.
     return crypto.subtle.importKey("pkcs8", pkcs8, { name: "X25519" }, exportable, ["deriveBits"])
 }
