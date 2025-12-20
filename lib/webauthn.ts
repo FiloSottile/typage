@@ -1,7 +1,7 @@
 import { bech32, base64nopad } from "@scure/base"
-import { randomBytes } from "@noble/hashes/utils"
-import { extract } from "@noble/hashes/hkdf"
-import { sha256 } from "@noble/hashes/sha2"
+import { randomBytes } from "@noble/hashes/utils.js"
+import { extract } from "@noble/hashes/hkdf.js"
+import { sha256 } from "@noble/hashes/sha2.js"
 import { type Identity, type Recipient } from "./index.js"
 import { Stanza } from "./format.js"
 import { decryptFileKey, encryptFileKey } from "./recipients.js"
@@ -94,7 +94,7 @@ export async function createCredential(options: CreationOptions): Promise<string
             rp: { name: "", id: options.rpId },
             user: {
                 name: options.keyName,
-                id: randomBytes(8), // avoid overwriting existing keys
+                id: domBuffer(randomBytes(8)), // avoid overwriting existing keys
                 displayName: "",
             },
             pubKeyCredParams: defaultAlgorithms,
@@ -192,11 +192,11 @@ class WebAuthnInternal {
         const assertion = await navigator.credentials.get({
             publicKey: {
                 allowCredentials: this.credId ? [{
-                    id: this.credId,
+                    id: domBuffer(this.credId),
                     transports: this.transports as AuthenticatorTransport[],
                     type: "public-key"
                 }] : [],
-                challenge: randomBytes(16),
+                challenge: domBuffer(randomBytes(16)),
                 extensions: { prf: { eval: prfInputs(nonce) } },
                 userVerification: "required", // prf requires UV
                 rpId: this.rpId,
@@ -298,5 +298,12 @@ function deriveKey(results: AuthenticationExtensionsPRFValues): Uint8Array {
     const prf = new Uint8Array(results.first.byteLength + results.second.byteLength)
     prf.set(new Uint8Array(results.first as ArrayBuffer), 0)
     prf.set(new Uint8Array(results.second as ArrayBuffer), results.first.byteLength)
-    return extract(sha256, prf, label)
+    return extract(sha256, prf, new TextEncoder().encode(label))
+}
+
+// TypeScript 5.9+ made Uint8Array generic, defaulting to Uint8Array<ArrayBufferLike>.
+// DOM APIs like WebAuthn require Uint8Array<ArrayBuffer> (no SharedArrayBuffer).
+// This helper narrows the type while still catching non-Uint8Array arguments.
+function domBuffer(arr: Uint8Array): Uint8Array<ArrayBuffer> {
+    return arr as Uint8Array<ArrayBuffer>
 }

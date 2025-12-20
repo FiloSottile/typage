@@ -1,4 +1,4 @@
-import { randomBytes } from "@noble/hashes/utils"
+import { randomBytes } from "@noble/hashes/utils.js"
 
 export class LineReader {
     private s: ReadableStreamDefaultReader<Uint8Array>

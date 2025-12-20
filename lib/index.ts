@@ -1,7 +1,7 @@
-import { hmac } from "@noble/hashes/hmac"
-import { hkdf } from "@noble/hashes/hkdf"
-import { sha256 } from "@noble/hashes/sha2"
-import { randomBytes } from "@noble/hashes/utils"
+import { hmac } from "@noble/hashes/hmac.js"
+import { hkdf } from "@noble/hashes/hkdf.js"
+import { sha256 } from "@noble/hashes/sha2.js"
+import { randomBytes } from "@noble/hashes/utils.js"
 import { HybridIdentity, HybridRecipient, ScryptIdentity, ScryptRecipient, X25519Identity, X25519Recipient } from "./recipients.js"
 import { encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./format.js"
 import { ciphertextSize, decryptSTREAM, encryptSTREAM, plaintextSize } from "./stream.js"
@@ -183,12 +183,14 @@ export class Encrypter {
             stanzas.push(...await recipient.wrapFileKey(fileKey))
         }
 
-        const hmacKey = hkdf(sha256, fileKey, undefined, "header", 32)
+        const labelHeader = new TextEncoder().encode("header")
+        const hmacKey = hkdf(sha256, fileKey, undefined, labelHeader, 32)
         const mac = hmac(sha256, hmacKey, encodeHeaderNoMAC(stanzas))
         const header = encodeHeader(stanzas, mac)
 
         const nonce = randomBytes(16)
-        const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
+        const labelPayload = new TextEncoder().encode("payload")
+        const streamKey = hkdf(sha256, fileKey, nonce, labelPayload, 32)
         const encrypter = encryptSTREAM(streamKey)
 
         if (!(file instanceof ReadableStream)) {
@@ -282,7 +284,8 @@ export class Decrypter {
         const { fileKey, headerSize, rest } = await this.decryptHeaderInternal(s)
         const { data: nonce, rest: payload } = await read(rest, 16)
 
-        const streamKey = hkdf(sha256, fileKey, nonce, "payload", 32)
+        const label = new TextEncoder().encode("payload")
+        const streamKey = hkdf(sha256, fileKey, nonce, label, 32)
         const decrypter = decryptSTREAM(streamKey)
         const out = payload.pipeThrough(decrypter)
 
@@ -316,7 +319,8 @@ export class Decrypter {
         const fileKey = await this.unwrapFileKey(h.stanzas)
         if (fileKey === null) throw Error("no identity matched any of the file's recipients")
 
-        const hmacKey = hkdf(sha256, fileKey, undefined, "header", 32)
+        const label = new TextEncoder().encode("header")
+        const hmacKey = hkdf(sha256, fileKey, undefined, label, 32)
         const mac = hmac(sha256, hmacKey, h.headerNoMAC)
         if (!compareBytes(h.MAC, mac)) throw Error("invalid header HMAC")
 

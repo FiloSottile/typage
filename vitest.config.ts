@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config"
+import { webdriverio } from "@vitest/browser-webdriverio"
 
 export default defineConfig({
     test: {
@@ -19,7 +20,7 @@ export default defineConfig({
                         }, {
                             browser: "chrome",
                         }],
-                        provider: "webdriverio",
+                        provider: webdriverio(),
                         screenshotFailures: false,
                     },
                 },

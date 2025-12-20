@@ -3,8 +3,8 @@ import { encodeHeader, encodeHeaderNoMAC, parseHeader } from "../lib/format.js"
 import { decryptSTREAM, encryptSTREAM } from "../lib/stream.js"
 import { stream, readAll } from "../lib/io.js"
 import { forceWebCryptoOff } from "../lib/x25519.js"
-import { hkdf } from "@noble/hashes/hkdf"
-import { sha256 } from "@noble/hashes/sha2"
+import { hkdf } from "@noble/hashes/hkdf.js"
+import { sha256 } from "@noble/hashes/sha2.js"
 import { hex } from "@scure/base"
 import { Decrypter, armor } from "../lib/index.js"
 import * as testkit from "cctv-age"
@@ -32,7 +32,7 @@ describe("CCTV testkit", async function () {
         }
         if (vector.meta.compressed === "zlib") {
             vector.body = new Uint8Array(await new Response(
-                new Blob([vector.body]).stream().pipeThrough(new DecompressionStream("deflate"))
+                new Blob([vector.body as Uint8Array<ArrayBuffer>]).stream().pipeThrough(new DecompressionStream("deflate"))
             ).arrayBuffer())
         } else if (vector.meta.compressed) {
             throw Error("unknown compression: " + vector.meta.compressed)
@@ -96,14 +96,16 @@ describe("CCTV testkit", async function () {
                     assert.deepEqual(got, body())
                 })
                 it("should round-trip STREAM encryption", async function () {
-                    const streamKey = hkdf(sha256, hex.decode(vec.meta["file key"]), nonce, "payload", 32)
+                    const label = new TextEncoder().encode("payload")
+                    const streamKey = hkdf(sha256, hex.decode(vec.meta["file key"]), nonce, label, 32)
                     const decrypter = decryptSTREAM(streamKey)
                     const encrypter = encryptSTREAM(streamKey)
                     const got = await readAll(stream(payload).pipeThrough(decrypter).pipeThrough(encrypter))
                     assert.deepEqual(got, payload)
                 })
                 itSlowlyIfBig("should round-trip STREAM encryption byte-by-byte", async function () {
-                    const streamKey = hkdf(sha256, hex.decode(vec.meta["file key"]), nonce, "payload", 32)
+                    const label = new TextEncoder().encode("payload")
+                    const streamKey = hkdf(sha256, hex.decode(vec.meta["file key"]), nonce, label, 32)
                     const decrypter = decryptSTREAM(streamKey)
                     const encrypter = encryptSTREAM(streamKey)
                     const source = streamByteByByte(payload)

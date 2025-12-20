@@ -1,4 +1,4 @@
-import { x25519 } from "@noble/curves/ed25519"
+import { x25519 } from "@noble/curves/ed25519.js"
 
 const exportable = false
 
@@ -33,7 +33,7 @@ export async function webCryptoFallback<Return>(
 export async function scalarMult(scalar: Uint8Array | CryptoKey, u: Uint8Array): Promise<Uint8Array> {
     return await webCryptoFallback(async () => {
         const key = isCryptoKey(scalar) ? scalar : await importX25519Key(scalar)
-        const peer = await crypto.subtle.importKey("raw", u, { name: "X25519" }, exportable, [])
+        const peer = await crypto.subtle.importKey("raw", domBuffer(u), { name: "X25519" }, exportable, [])
         // 256 bits is the fixed size of a X25519 shared secret. It's kind of
         // worrying that the WebCrypto API encourages truncating it.
         return new Uint8Array(await crypto.subtle.deriveBits({ name: "X25519", public: peer }, key, 256))
@@ -83,4 +83,11 @@ async function importX25519Key(key: Uint8Array): Promise<CryptoKey> {
 
 function isCryptoKey(key: unknown): key is CryptoKey {
     return typeof CryptoKey !== "undefined" && key instanceof CryptoKey
+}
+
+// TypeScript 5.9+ made Uint8Array generic, defaulting to Uint8Array<ArrayBufferLike>.
+// DOM APIs like crypto.subtle require Uint8Array<ArrayBuffer> (no SharedArrayBuffer).
+// This helper narrows the type while still catching non-Uint8Array arguments.
+function domBuffer(arr: Uint8Array): Uint8Array<ArrayBuffer> {
+    return arr as Uint8Array<ArrayBuffer>
 }

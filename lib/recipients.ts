@@ -1,10 +1,10 @@
 import { bech32 } from "@scure/base"
-import { hkdf, extract, expand } from "@noble/hashes/hkdf"
-import { sha256 } from "@noble/hashes/sha2"
-import { scrypt } from "@noble/hashes/scrypt"
-import { chacha20poly1305 } from "@noble/ciphers/chacha"
-import { XWing } from "@noble/post-quantum/hybrid.js"
-import { randomBytes } from "@noble/hashes/utils"
+import { hkdf, extract, expand } from "@noble/hashes/hkdf.js"
+import { sha256 } from "@noble/hashes/sha2.js"
+import { scrypt } from "@noble/hashes/scrypt.js"
+import { chacha20poly1305 } from "@noble/ciphers/chacha.js"
+import { MLKEM768X25519 } from "@noble/post-quantum/hybrid.js"
+import { randomBytes } from "@noble/hashes/utils.js"
 import { base64nopad } from "@scure/base"
 import * as x25519 from "./x25519.js"
 import { Stanza } from "./format.js"
@@ -73,7 +73,7 @@ export async function identityToRecipient(identity: string | CryptoKey): Promise
         const res = bech32.decodeToBytes(identity)
         if (res.prefix.toUpperCase() !== "AGE-SECRET-KEY-PQ-" ||
             res.bytes.length !== 32) { throw Error("invalid identity") }
-        const recipient = XWing.getPublicKey(res.bytes)
+        const recipient = MLKEM768X25519.getPublicKey(res.bytes)
         // Use encode directly to disable the 90 character bech32 limit.
         return bech32.encode("age1pq", bech32.toWords(recipient), false)
     } else {
@@ -99,7 +99,7 @@ export class HybridRecipient implements Recipient {
     }
 
     wrapFileKey(fileKey: Uint8Array): Stanza[] {
-        const { cipherText: encapsulatedKey, sharedSecret } = XWing.encapsulate(this.recipient)
+        const { cipherText: encapsulatedKey, sharedSecret } = MLKEM768X25519.encapsulate(this.recipient)
         const label = new TextEncoder().encode("age-encryption.org/mlkem768x25519")
         const { key, nonce } = hpkeContext(hpkeMLKEM768X25519, sharedSecret, label)
         const ciphertext = chacha20poly1305(key, nonce).encrypt(fileKey)
@@ -134,7 +134,7 @@ export class HybridIdentity implements Identity {
                 throw Error("invalid mlkem768x25519 stanza")
             }
 
-            const sharedSecret = XWing.decapsulate(share, this.identity)
+            const sharedSecret = MLKEM768X25519.decapsulate(share, this.identity)
             const label = new TextEncoder().encode("age-encryption.org/mlkem768x25519")
             const { key, nonce } = hpkeContext(hpkeMLKEM768X25519, sharedSecret, label)
             try {
@@ -226,7 +226,8 @@ export class X25519Recipient implements Recipient {
         salt.set(share)
         salt.set(this.recipient, share.length)
 
-        const key = hkdf(sha256, secret, salt, "age-encryption.org/v1/X25519", 32)
+        const label = new TextEncoder().encode("age-encryption.org/v1/X25519")
+        const key = hkdf(sha256, secret, salt, label, 32)
         return [new Stanza(["X25519", base64nopad.encode(share)], encryptFileKey(fileKey, key))]
     }
 }
@@ -269,7 +270,8 @@ export class X25519Identity implements Identity {
             salt.set(share)
             salt.set(recipient, share.length)
 
-            const key = hkdf(sha256, secret, salt, "age-encryption.org/v1/X25519", 32)
+            const label = new TextEncoder().encode("age-encryption.org/v1/X25519")
+            const key = hkdf(sha256, secret, salt, label, 32)
             const fileKey = decryptFileKey(s.body, key)
             if (fileKey !== null) return fileKey
         }
