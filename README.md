@@ -54,6 +54,19 @@ const out = await d.decrypt(ciphertext, "text")
 console.log(out)
 ```
 
+#### Encrypt and decrypt a file with post-quantum hybrid keys
+
+```ts
+import * as age from "age-encryption"
+
+const identity = await age.generateHybridIdentity()
+const recipient = await age.identityToRecipient(identity)
+console.log(identity)
+console.log(recipient)
+
+// ...
+```
+
 #### ASCII armoring
 
 age encrypted files (the inputs of `Decrypter.decrypt` and outputs of

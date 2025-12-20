@@ -1,6 +1,7 @@
 import { describe } from "vitest"
 import { test, fc } from "@fast-check/vitest"
 import { Decrypter, Encrypter, generateIdentity, identityToRecipient } from "../lib/index.js"
+import { generateHybridIdentity } from "../lib/recipients.js"
 
 fc.configureGlobal({
     // increasing this value will make fast-check do more random test runs,
@@ -52,6 +53,48 @@ describe("Property Based Tests", () => {
             "decryption should invert encryption with identity/recipient (uint8array plaintext)",
             async ({ plaintext }) => {
                 const identity = await generateIdentity()
+                const recipient = await identityToRecipient(identity)
+
+                const enc = new Encrypter()
+                const dec = new Decrypter()
+
+                enc.addRecipient(recipient)
+                dec.addIdentity(identity)
+
+                return isEqualUInt8Array(await dec.decrypt(await enc.encrypt(plaintext)), plaintext)
+            }
+        )
+    })
+
+    describe("Hybrid (Post-Quantum) Encryption and Decryption", () => {
+        test.prop(
+            {
+                plaintext: fc.string()
+            }
+        )(
+            "decryption should invert encryption with hybrid identity/recipient (string plaintext)",
+            async ({ plaintext }) => {
+                const identity = await generateHybridIdentity()
+                const recipient = await identityToRecipient(identity)
+
+                const enc = new Encrypter()
+                const dec = new Decrypter()
+
+                enc.addRecipient(recipient)
+                dec.addIdentity(identity)
+
+                return await dec.decrypt(await enc.encrypt(plaintext), "text") === plaintext
+            }
+        )
+
+        test.prop(
+            {
+                plaintext: fc.uint8Array()
+            }
+        )(
+            "decryption should invert encryption with hybrid identity/recipient (uint8array plaintext)",
+            async ({ plaintext }) => {
+                const identity = await generateHybridIdentity()
                 const recipient = await identityToRecipient(identity)
 
                 const enc = new Encrypter()

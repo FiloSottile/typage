@@ -2,7 +2,7 @@ import { hmac } from "@noble/hashes/hmac"
 import { hkdf } from "@noble/hashes/hkdf"
 import { sha256 } from "@noble/hashes/sha2"
 import { randomBytes } from "@noble/hashes/utils"
-import { ScryptIdentity, ScryptRecipient, X25519Identity, X25519Recipient } from "./recipients.js"
+import { HybridIdentity, HybridRecipient, ScryptIdentity, ScryptRecipient, X25519Identity, X25519Recipient } from "./recipients.js"
 import { encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./format.js"
 import { ciphertextSize, decryptSTREAM, encryptSTREAM, plaintextSize } from "./stream.js"
 import { readAll, stream, read, readAllString, prepend } from "./io.js"
@@ -58,8 +58,9 @@ export interface Recipient {
      *
      * @returns One or more stanzas that will be included (unencrypted) in the
      * encrypted file's header. The corresponding identity (which may be the
-     * built-in X25519 or scrypt identity, or a custom {@link Identity}) must be
-     * able to identify these stanzas, and use them to decrypt the file key.
+     * built-in post-quantum hybrid, X25519, or scrypt identity, or a custom
+     * {@link Identity}) must be able to identify these stanzas, and use them to
+     * decrypt the file key.
      */
     wrapFileKey(fileKey: Uint8Array): Stanza[] | Promise<Stanza[]>;
 }
@@ -85,7 +86,7 @@ export interface ReadableStreamWithSize extends ReadableStream<Uint8Array> {
     size(sourceSize: number): number
 }
 
-export { generateIdentity, identityToRecipient } from "./recipients.js"
+export { generateIdentity, generateHybridIdentity, generateX25519Identity, identityToRecipient } from "./recipients.js"
 
 /**
  * Encrypts a file using the given passphrase or recipients.
@@ -147,7 +148,13 @@ export class Encrypter {
         }
 
         if (typeof s === "string") {
-            this.recipients.push(new X25519Recipient(s))
+            if (s.startsWith("age1pq1")) {
+                this.recipients.push(new HybridRecipient(s))
+            } else if (s.startsWith("age1")) {
+                this.recipients.push(new X25519Recipient(s))
+            } else {
+                throw new Error("unrecognized recipient type")
+            }
         } else {
             this.recipients.push(s)
         }
@@ -221,7 +228,8 @@ export class Decrypter {
      * multiple times to try multiple identities.
      *
      * @param s - The identity to decrypt the file with. Either a string
-     * beginning with `AGE-SECRET-KEY-1...`, an X25519 private
+     * beginning with `AGE-SECRET-KEY-PQ-1...` or `AGE-SECRET-KEY-1...`, an
+     * X25519 private
      * {@link https://developer.mozilla.org/en-US/docs/Web/API/CryptoKey | CryptoKey}
      * object, or an object implementing the {@link Identity} interface.
      *
@@ -238,8 +246,16 @@ export class Decrypter {
      * ```
      */
     addIdentity(s: string | CryptoKey | Identity): void {
-        if (typeof s === "string" || isCryptoKey(s)) {
+        if (isCryptoKey(s)) {
             this.identities.push(new X25519Identity(s))
+        } else if (typeof s === "string") {
+            if (s.startsWith("AGE-SECRET-KEY-1")) {
+                this.identities.push(new X25519Identity(s))
+            } else if (s.startsWith("AGE-SECRET-KEY-PQ-1")) {
+                this.identities.push(new HybridIdentity(s))
+            } else {
+                throw new Error("unrecognized identity type")
+            }
         } else {
             this.identities.push(s)
         }
