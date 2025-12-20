@@ -1,5 +1,6 @@
 import { describe, it, assert, onTestFinished, expect } from "vitest"
 import { Decrypter, Encrypter, generateIdentity, identityToRecipient } from "../lib/index.js"
+import { generateHybridIdentity, generateX25519Identity } from "../lib/recipients.js"
 import { forceWebCryptoOff, webCryptoFallback } from "../lib/x25519.js"
 import { randomBytesStream, readAll } from "../lib/io.js"
 import { base64nopad } from "@scure/base"
@@ -31,6 +32,41 @@ describe("key generation", function () {
     it("should encrypt and decrypt a file", async function () {
         const identity = await generateIdentity()
         const recipient = await identityToRecipient(identity)
+
+        const e = new Encrypter()
+        e.addRecipient(recipient)
+        const file = await e.encrypt("age")
+
+        const d = new Decrypter()
+        d.addIdentity(identity)
+        const out = await d.decrypt(file, "text")
+
+        assert.equal(out, "age")
+    })
+    it("should encrypt and decrypt a file with X25519 identity", async function () {
+        const identity = await generateX25519Identity()
+        const recipient = await identityToRecipient(identity)
+
+        assert.match(identity, /^AGE-SECRET-KEY-1/)
+        assert.match(recipient, /^age1/)
+        assert.notMatch(recipient, /^age1pq1/)
+
+        const e = new Encrypter()
+        e.addRecipient(recipient)
+        const file = await e.encrypt("age")
+
+        const d = new Decrypter()
+        d.addIdentity(identity)
+        const out = await d.decrypt(file, "text")
+
+        assert.equal(out, "age")
+    })
+    it("should encrypt and decrypt a file with hybrid identity", async function () {
+        const identity = await generateHybridIdentity()
+        const recipient = await identityToRecipient(identity)
+
+        assert.match(identity, /^AGE-SECRET-KEY-PQ-1/)
+        assert.match(recipient, /^age1pq1/)
 
         const e = new Encrypter()
         e.addRecipient(recipient)
@@ -184,6 +220,42 @@ describe("AgeEncrypter", function () {
         })
         assert.throws(() => {
             e.addRecipient("age1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl7")
+        })
+    })
+    it("should throw when using bad hybrid recipients", async function () {
+        const e = new Encrypter()
+        // Wrong prefix
+        assert.throws(() => {
+            e.addRecipient("age1pqinvalid")
+        })
+        // Valid prefix but wrong length (truncated)
+        const identity = await generateHybridIdentity()
+        const recipient = await identityToRecipient(identity)
+        assert.throws(() => {
+            e.addRecipient(recipient.slice(0, -5))
+        })
+    })
+    it("should throw when using unrecognized recipient type", function () {
+        const e = new Encrypter()
+        assert.throws(() => {
+            e.addRecipient("foo1tgyuvdlmpejqsdf847hevurz9szk7vf3j7ytfyqecgzvphvu2d8qrtaxl6")
+        })
+    })
+    it("should throw when using bad hybrid identities", function () {
+        const d = new Decrypter()
+        // Wrong prefix
+        assert.throws(() => {
+            d.addIdentity("AGE-SECRET-KEY-PQ-INVALID")
+        })
+        // Truncated identity
+        assert.throws(() => {
+            d.addIdentity("AGE-SECRET-KEY-PQ-1")
+        })
+    })
+    it("should throw when using unrecognized identity type", function () {
+        const d = new Decrypter()
+        assert.throws(() => {
+            d.addIdentity("AGE-SECRET-KEY-FOO-1ABCDEFGH")
         })
     })
 })
