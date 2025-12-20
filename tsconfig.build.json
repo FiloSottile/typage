@@ -6,9 +6,9 @@
     "compilerOptions": {
         "outDir": "dist",
         "declaration": true,
-        // Node 20, Maintenance LTS as of 2025-07
+        // Node 20, oldest Maintenance LTS as of 2025-12
         // https://github.com/microsoft/TypeScript/wiki/Node-Target-Mapping#node-20
         "target": "ES2023",
-        // "module": "node20", // added in TypeScript 5.9
+        "module": "node20",
     },
 }

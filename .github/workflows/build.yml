@@ -16,7 +16,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 24.x # Current as of 2025-07
+          node-version: 25.x # Current as of 2025-12
       - run: npm clean-install
       - run: npm run build
       - run: npm run lint
@@ -29,7 +29,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 24.x
+          node-version: 25.x # Current as of 2025-12
       - run: npm clean-install
       - run: npm run build
       - run: node_modules/.bin/esbuild --target=es2022 --bundle --outfile=typage.js --global-name=age age-encryption
@@ -74,7 +74,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 24.x
+          node-version: 25.x # Current as of 2025-12
           registry-url: "https://registry.npmjs.org"
       - run: npm clean-install
       - run: npx jsr publish

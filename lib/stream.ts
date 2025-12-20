@@ -1,4 +1,4 @@
-import { chacha20poly1305 } from "@noble/ciphers/chacha"
+import { chacha20poly1305 } from "@noble/ciphers/chacha.js"
 
 const chacha20poly1305Overhead = 16
 

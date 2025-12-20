@@ -4,7 +4,7 @@ import { generateHybridIdentity, generateX25519Identity } from "../lib/recipient
 import { forceWebCryptoOff, webCryptoFallback } from "../lib/x25519.js"
 import { randomBytesStream, readAll } from "../lib/io.js"
 import { base64nopad } from "@scure/base"
-import { sha256 } from "@noble/hashes/sha2"
+import { sha256 } from "@noble/hashes/sha2.js"
 
 describe("AgeDecrypter", function () {
     it("should decrypt a file with the right passphrase", async function () {
