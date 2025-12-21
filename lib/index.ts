@@ -2,7 +2,10 @@ import { hmac } from "@noble/hashes/hmac.js"
 import { hkdf } from "@noble/hashes/hkdf.js"
 import { sha256 } from "@noble/hashes/sha2.js"
 import { randomBytes } from "@noble/hashes/utils.js"
-import { HybridIdentity, HybridRecipient, ScryptIdentity, ScryptRecipient, X25519Identity, X25519Recipient } from "./recipients.js"
+import { HybridIdentity, HybridRecipient } from "./recipients.js"
+import { ScryptIdentity, ScryptRecipient } from "./recipients.js"
+import { X25519Identity, X25519Recipient } from "./recipients.js"
+import { TagRecipient, HybridTagRecipient } from "./recipients.js"
 import { encodeHeader, encodeHeaderNoMAC, parseHeader, Stanza } from "./format.js"
 import { ciphertextSize, decryptSTREAM, encryptSTREAM, plaintextSize } from "./stream.js"
 import { readAll, stream, read, readAllString, prepend } from "./io.js"
@@ -138,6 +141,10 @@ export class Encrypter {
      * Add a recipient to encrypt the file(s) for. This method can be called
      * multiple times to encrypt the file(s) for multiple recipients.
      *
+     * This version supports native X25519 recipients (`age1...`), hybrid
+     * post-quantum recipients (`age1pq1...`), tag recipients (`age1tag1...`),
+     * and hybrid tag recipients (`age1tagpq1...`).
+     *
      * @param s - The recipient to encrypt the file for. Either a string
      * beginning with `age1...` or an object implementing the {@link Recipient}
      * interface.
@@ -150,6 +157,10 @@ export class Encrypter {
         if (typeof s === "string") {
             if (s.startsWith("age1pq1")) {
                 this.recipients.push(new HybridRecipient(s))
+            } else if (s.startsWith("age1tag1")) {
+                this.recipients.push(new TagRecipient(s))
+            } else if (s.startsWith("age1tagpq1")) {
+                this.recipients.push(new HybridTagRecipient(s))
             } else if (s.startsWith("age1")) {
                 this.recipients.push(new X25519Recipient(s))
             } else {

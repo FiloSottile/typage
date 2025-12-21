@@ -3,7 +3,8 @@ import { hkdf, extract, expand } from "@noble/hashes/hkdf.js"
 import { sha256 } from "@noble/hashes/sha2.js"
 import { scrypt } from "@noble/hashes/scrypt.js"
 import { chacha20poly1305 } from "@noble/ciphers/chacha.js"
-import { MLKEM768X25519 } from "@noble/post-quantum/hybrid.js"
+import { MLKEM768P256, MLKEM768X25519 } from "@noble/post-quantum/hybrid.js"
+import { p256 } from "@noble/curves/nist.js"
 import { randomBytes } from "@noble/hashes/utils.js"
 import { base64nopad } from "@scure/base"
 import * as x25519 from "./x25519.js"
@@ -148,6 +149,8 @@ export class HybridIdentity implements Identity {
 }
 
 const hpkeMLKEM768X25519 = 0x647a
+const hpkeMLKEM768P256 = 0x0050
+const hpkeDHKEMP256 = 0x0010
 
 function hpkeContext(kemID: number, sharedSecret: Uint8Array, info: Uint8Array): { key: Uint8Array; nonce: Uint8Array } {
     const suiteID = hpkeSuiteID(kemID)
@@ -204,6 +207,79 @@ function hpkeLabeledExpand(suiteID: Uint8Array, prk: Uint8Array, label: string, 
     offset += label.length
     labeledInfo.set(info, offset)
     return expand(sha256, prk, labeledInfo, length)
+}
+
+function hpkeDHKEMP256Encapsulate(recipient: Uint8Array): { encapsulatedKey: Uint8Array; sharedSecret: Uint8Array } {
+    if (recipient.length !== p256.lengths.publicKeyUncompressed) {
+        recipient = p256.Point.fromBytes(recipient).toBytes(false)
+    }
+    const ephemeral = p256.utils.randomSecretKey()
+    const encapsulatedKey = p256.getPublicKey(ephemeral, false)
+    const ss = p256.getSharedSecret(ephemeral, recipient, true).subarray(1)
+    const kemContext = new Uint8Array(encapsulatedKey.length + recipient.length)
+    kemContext.set(encapsulatedKey, 0)
+    kemContext.set(recipient, encapsulatedKey.length)
+    const suiteID = new Uint8Array(5)
+    suiteID.set(new TextEncoder().encode("KEM"), 0)
+    suiteID[3] = hpkeDHKEMP256 >> 8
+    suiteID[4] = hpkeDHKEMP256 & 0xff
+    const eaePRK = hpkeLabeledExtract(suiteID, undefined, "eae_prk", ss)
+    const sharedSecret = hpkeLabeledExpand(suiteID, eaePRK, "shared_secret", kemContext, 32)
+    return { encapsulatedKey, sharedSecret }
+}
+
+export class TagRecipient implements Recipient {
+    private recipient: Uint8Array
+
+    constructor(s: string) {
+        const res = bech32.decodeToBytes(s)
+        if (!s.startsWith("age1tag1") ||
+            res.prefix.toLowerCase() !== "age1tag" ||
+            res.bytes.length !== 33) { throw Error("invalid recipient") }
+        this.recipient = res.bytes
+    }
+
+    wrapFileKey(fileKey: Uint8Array): Stanza[] {
+        const { encapsulatedKey, sharedSecret } = hpkeDHKEMP256Encapsulate(this.recipient)
+        const label = new TextEncoder().encode("age-encryption.org/p256tag")
+        const tag = (() => {
+            const recipientHash = sha256(this.recipient).subarray(0, 4)
+            const ikm = new Uint8Array(encapsulatedKey.length + recipientHash.length)
+            ikm.set(encapsulatedKey, 0)
+            ikm.set(recipientHash, encapsulatedKey.length)
+            return extract(sha256, ikm, label).subarray(0, 4)
+        })()
+        const { key, nonce } = hpkeContext(hpkeDHKEMP256, sharedSecret, label)
+        const ciphertext = chacha20poly1305(key, nonce).encrypt(fileKey)
+        return [new Stanza(["p256tag", base64nopad.encode(tag), base64nopad.encode(encapsulatedKey)], ciphertext)]
+    }
+}
+
+export class HybridTagRecipient implements Recipient {
+    private recipient: Uint8Array
+
+    constructor(s: string) {
+        const res = bech32.decodeToBytes(s)
+        if (!s.startsWith("age1tagpq1") ||
+            res.prefix.toLowerCase() !== "age1tagpq" ||
+            res.bytes.length !== 1249) { throw Error("invalid recipient") }
+        this.recipient = res.bytes
+    }
+
+    wrapFileKey(fileKey: Uint8Array): Stanza[] {
+        const { cipherText: encapsulatedKey, sharedSecret } = MLKEM768P256.encapsulate(this.recipient)
+        const label = new TextEncoder().encode("age-encryption.org/mlkem768p256tag")
+        const tag = (() => {
+            const recipientHash = sha256(this.recipient.subarray(1184)).subarray(0, 4)
+            const ikm = new Uint8Array(encapsulatedKey.length + recipientHash.length)
+            ikm.set(encapsulatedKey, 0)
+            ikm.set(recipientHash, encapsulatedKey.length)
+            return extract(sha256, ikm, label).subarray(0, 4)
+        })()
+        const { key, nonce } = hpkeContext(hpkeMLKEM768P256, sharedSecret, label)
+        const ciphertext = chacha20poly1305(key, nonce).encrypt(fileKey)
+        return [new Stanza(["mlkem768p256tag", base64nopad.encode(tag), base64nopad.encode(encapsulatedKey)], ciphertext)]
+    }
 }
 
 export class X25519Recipient implements Recipient {
