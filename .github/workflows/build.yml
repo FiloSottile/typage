@@ -37,8 +37,8 @@ jobs:
           package-manager-cache: false
       - run: npm clean-install --ignore-scripts
       - run: npm run build
-      - run: node_modules/.bin/esbuild --target=es2022 --bundle --outfile=typage.js --global-name=age age-encryption
-      - run: node_modules/.bin/esbuild --target=es2022 --bundle --minify --outfile=typage.min.js --global-name=age age-encryption
+      - run: node_modules/.bin/esbuild --target=es2023 --bundle --outfile=typage.js --global-name=age age-encryption
+      - run: node_modules/.bin/esbuild --target=es2023 --bundle --minify --outfile=typage.min.js --global-name=age age-encryption
       - uses: actions/upload-artifact@v4
         with:
           name: age-esbuild
