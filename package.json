@@ -29,7 +29,7 @@
         "test:short": "vitest --run --project node",
         "test:slow": "SLOW=1 vitest --run --project node",
         "examples:node": "cd tests/examples && npm install --omit=dev && npm run test:node",
-        "examples:bun": "cd tests/examples && bun install --omit=dev && bun run test:bun",
+        "examples:bun": "cd tests/examples && bun install --production && bun run test:bun",
         "examples:deno": "cd tests/examples && deno install && deno task test:deno",
         "examples:yarn": "cd tests/examples && yarn install --prod && yarn test:node",
         "examples:pnpm": "cd tests/examples && pnpm install --prod && pnpm test:node",

@@ -17,87 +17,88 @@ jobs:
           - 24.x # Active LTS as of 2025-12
           - 25.x # Current as of 2025-12
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
-      - run: npm update
-      - run: npm run build
-      - run: npm run lint
-      - run: npm run test
-      - run: npm run examples:node
+      - run: |
+          npm update
+          npm run build
+          npm run lint
+          npm run test
+          npm run examples:node
   esbuild:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 25.x # Current as of 2025-12
-      - run: npm update
-      - run: npm run build
-      - run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
-      - run: npm run examples:esbuild
+      - run: |
+          npm update
+          npm run build
+          echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          npm run examples:esbuild
   bun:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 25.x # Current as of 2025-12
-      - uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-      - run: npm update
-      - run: npm run build
-      - run: npm run examples:bun
-      # https://github.com/oven-sh/bun/issues/4145
-      # - run: bun run --bun test:short
+      - run: |
+          npm install -g bun
+          npm update
+          npm run build
+          npm run examples:bun
+          # https://github.com/oven-sh/bun/issues/4145
+          # bun run --bun test:short
   deno:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 25.x # Current as of 2025-12
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: vx.x.x
-      - run: npm update
-      - run: npm run build
-      - run: npm run examples:deno
+      - run: |
+          npm install -g deno
+          npm update
+          npm run build
+          npm run examples:deno
   yarn:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 25.x # Current as of 2025-12
-      - run: npm update
-      - run: npm run build
-      - run: npm run examples:yarn
+      - run: |
+          npm install -g yarn
+          npm update
+          npm run build
+          npm run examples:yarn
   pnpm:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 25.x # Current as of 2025-12
-      - uses: pnpm/action-setup@v4
-        with:
-          version: latest
-      - run: npm update
-      - run: npm run build
-      - run: npm run examples:pnpm
+      - run: |
+          npm install -g pnpm
+          npm update
+          npm run build
+          npm run examples:pnpm
