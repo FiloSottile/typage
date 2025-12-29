@@ -99,4 +99,4 @@ jobs:
           node-version: 25.x # Current as of 2025-12
           package-manager-cache: false
       - run: npm clean-install --ignore-scripts
-      - run: npx jsr publish --allow-slow-types
+      - run: npx jsr publish

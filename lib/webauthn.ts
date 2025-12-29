@@ -59,16 +59,9 @@ const defaultAlgorithms: PublicKeyCredentialParameters[] = [
     { type: "public-key", alg: -257 }, // RSA PKCS#1 v1.5 with SHA-256
 ]
 
-declare global {
-    interface PublicKeyCredentialCreationOptions {
-        // https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredentialCreationOptions#hints
-        hints?: ("security-key" | "client-device" | "hybrid")[];
-    }
-    interface PublicKeyCredentialRequestOptions {
-        // https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredentialRequestOptions#hints
-        hints?: ("security-key" | "client-device" | "hybrid")[];
-    }
-}
+// The hints property is not yet in TypeScript's DOM types.
+// https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredentialCreationOptions#hints
+type CredentialHints = ("security-key" | "client-device" | "hybrid")[]
 
 /**
  * Creates a new WebAuthn credential which can be used for encryption and
@@ -106,7 +99,7 @@ export async function createCredential(options: CreationOptions): Promise<string
             hints: options.type === "security-key" ? ["security-key"] : [],
             extensions: { prf: {} },
             challenge: new Uint8Array([0]).buffer, // unused without attestation
-        },
+        } as PublicKeyCredentialCreationOptions & { hints?: CredentialHints },
     }) as PublicKeyCredential
     if (!cred.getClientExtensionResults().prf?.enabled) {
         throw Error("PRF extension not available (need macOS 15+, Chrome 132+)")
