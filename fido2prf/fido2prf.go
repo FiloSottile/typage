@@ -98,23 +98,38 @@ func (i *Identity) assert(nonce []byte) ([]byte, error) {
 			return nil, err
 		}
 
-		pin, err := i.getPIN()
-		if err != nil {
-			return nil, err
-		}
-
+		// Try without PIN first (for devices that handle PIN on-device).
 		assertion, err := device.Assertion(
 			i.relyingParty,
 			make([]byte, 32),
 			[][]byte{i.credentialID},
-			pin,
+			"",
 			&libfido2.AssertionOpts{
 				Extensions: []libfido2.Extension{libfido2.HMACSecretExtension},
 				HMACSalt:   hmacSecretSalt(nonce),
 				UV:         libfido2.True,
 			},
 		)
-		if err != nil {
+		if errors.Is(err, libfido2.ErrPinRequired) {
+			pin, err := i.getPIN()
+			if err != nil {
+				return nil, err
+			}
+			assertion, err = device.Assertion(
+				i.relyingParty,
+				make([]byte, 32),
+				[][]byte{i.credentialID},
+				pin,
+				&libfido2.AssertionOpts{
+					Extensions: []libfido2.Extension{libfido2.HMACSecretExtension},
+					HMACSalt:   hmacSecretSalt(nonce),
+					UV:         libfido2.True,
+				},
+			)
+		}
+		if errors.Is(err, libfido2.ErrNoCredentials) {
+			continue
+		} else if err != nil {
 			return nil, err
 		}
 
