@@ -288,10 +288,28 @@ function deriveKey(results: AuthenticationExtensionsPRFValues): Uint8Array {
     if (results.second === undefined) {
         throw Error("Missing second PRF result")
     }
-    const prf = new Uint8Array(results.first.byteLength + results.second.byteLength)
-    prf.set(new Uint8Array(results.first as ArrayBuffer), 0)
-    prf.set(new Uint8Array(results.second as ArrayBuffer), results.first.byteLength)
+    const first = prfResultToBytes(results.first)
+    const second = prfResultToBytes(results.second)
+    const prf = new Uint8Array(first.byteLength + second.byteLength)
+    prf.set(first, 0)
+    prf.set(second, first.byteLength)
     return extract(sha256, prf, new TextEncoder().encode(label))
+}
+
+function prfResultToBytes(result: BufferSource): Uint8Array {
+    if (result instanceof ArrayBuffer) {
+        return new Uint8Array(result)
+    }
+    if (ArrayBuffer.isView(result)) {
+        return new Uint8Array(result.buffer, result.byteOffset, result.byteLength)
+    }
+    // This is to handle non spec-compliant implementations that return a number
+    // array instead of a `BufferSource`.
+    // Known in noncompliance: 1Password browser extension (2026-05-30)
+    if (Array.isArray(result)) {
+        return Uint8Array.from(result as number[])
+    }
+    throw Error("PRF result is not a BufferSource")
 }
 
 // TypeScript 5.9+ made Uint8Array generic, defaulting to Uint8Array<ArrayBufferLike>.
