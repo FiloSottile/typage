@@ -67,6 +67,7 @@ describe("key generation", function () {
 
         assert.match(identity, /^AGE-SECRET-KEY-PQ-1/)
         assert.match(recipient, /^age1pq1/)
+        assert.ok(recipient.length > 90)
 
         const e = new Encrypter()
         e.addRecipient(recipient)

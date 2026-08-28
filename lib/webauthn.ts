@@ -123,11 +123,12 @@ function encodeIdentity(credential: PublicKeyCredential, rpId: string): string {
 }
 
 function decodeIdentity(identity: string): [Uint8Array, string, string[]] {
-    const res = bech32.decodeToBytes(identity)
+    const { words } = bech32.decode(identity as `${string}1${string}`, false)
+    const bytes = bech32.fromWords(words)
     if (!identity.startsWith(prefix + "1")) {
         throw Error("invalid identity")
     }
-    const [version, rest1] = cbor.readUint(res.bytes)
+    const [version, rest1] = cbor.readUint(bytes)
     if (version !== 1) {
         throw Error("unsupported identity version")
     }
