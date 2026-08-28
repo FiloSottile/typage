@@ -39,8 +39,9 @@ func main() {
 			fmt.Printf("Error: %s\n", err)
 			os.Exit(1)
 		}
-		fmt.Fprintln(os.Stderr, "This is a symmetric identity; encryption also requires the hardware key.")
+		fmt.Fprintln(os.Stderr, "This is a symmetric identity; using it also requires the hardware key.")
 		fmt.Fprintln(os.Stderr, "Encrypt with: age -e -i identity.txt")
+		fmt.Fprintln(os.Stderr, "Decrypt with: age -d -i identity.txt")
 		fmt.Println(identity)
 		return
 	}
