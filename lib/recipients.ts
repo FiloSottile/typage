@@ -92,11 +92,12 @@ export class HybridRecipient implements Recipient {
     private recipient: Uint8Array
 
     constructor(s: string) {
-        const res = bech32.decodeToBytes(s)
+        const { prefix, words } = bech32.decode(s as `${string}1${string}`, false)
+        const bytes = bech32.fromWords(words)
         if (!s.startsWith("age1pq1") ||
-            res.prefix.toLowerCase() !== "age1pq" ||
-            res.bytes.length !== 1216) { throw Error("invalid recipient") }
-        this.recipient = res.bytes
+            prefix.toLowerCase() !== "age1pq" ||
+            bytes.length !== 1216) { throw Error("invalid recipient") }
+        this.recipient = bytes
     }
 
     wrapFileKey(fileKey: Uint8Array): Stanza[] {
@@ -259,11 +260,12 @@ export class HybridTagRecipient implements Recipient {
     private recipient: Uint8Array
 
     constructor(s: string) {
-        const res = bech32.decodeToBytes(s)
+        const { prefix, words } = bech32.decode(s as `${string}1${string}`, false)
+        const bytes = bech32.fromWords(words)
         if (!s.startsWith("age1tagpq1") ||
-            res.prefix.toLowerCase() !== "age1tagpq" ||
-            res.bytes.length !== 1249) { throw Error("invalid recipient") }
-        this.recipient = res.bytes
+            prefix.toLowerCase() !== "age1tagpq" ||
+            bytes.length !== 1249) { throw Error("invalid recipient") }
+        this.recipient = bytes
     }
 
     wrapFileKey(fileKey: Uint8Array): Stanza[] {
