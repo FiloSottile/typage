@@ -182,25 +182,33 @@ func (i *Identity) Unwrap(s []*age.Stanza) ([]byte, error) {
 	return nil, age.ErrIncorrectIdentity
 }
 
-func (i *Identity) Wrap(fileKey []byte) ([]*age.Stanza, error) {
+// WrapWithLabels implements [age.RecipientWithLabels], returning a single
+// "postquantum" label. This allows Identity to be mixed with other post-quantum
+// recipients without triggering errors.
+func (i *Identity) WrapWithLabels(fileKey []byte) ([]*age.Stanza, []string, error) {
 	nonce := make([]byte, 16)
 	if _, err := rand.Read(nonce); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	secret, err := i.assert(nonce)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	key := hkdf.Extract(sha256.New, secret, []byte(label))
 	ciphertext, err := aeadEncrypt(key, fileKey)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	return []*age.Stanza{{
 		Type: label,
 		Args: []string{base64.RawStdEncoding.Strict().EncodeToString(nonce)},
 		Body: ciphertext,
-	}}, nil
+	}}, []string{"postquantum"}, nil
+}
+
+func (i *Identity) Wrap(fileKey []byte) ([]*age.Stanza, error) {
+	s, _, err := i.WrapWithLabels(fileKey)
+	return s, err
 }
 
 func NewIdentity(s string, getPIN func() (string, error)) (*Identity, error) {
