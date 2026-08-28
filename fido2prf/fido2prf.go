@@ -98,22 +98,36 @@ func (i *Identity) assert(nonce []byte) ([]byte, error) {
 			return nil, err
 		}
 
-		pin, err := i.getPIN()
-		if err != nil {
-			return nil, err
-		}
-
+		// Try built-in user verification first (for devices that handle it
+		// on-device). libfido2 returns ErrPinRequired if a client PIN is needed.
 		assertion, err := device.Assertion(
 			i.relyingParty,
 			make([]byte, 32),
 			[][]byte{i.credentialID},
-			pin,
+			"",
 			&libfido2.AssertionOpts{
 				Extensions: []libfido2.Extension{libfido2.HMACSecretExtension},
 				HMACSalt:   hmacSecretSalt(nonce),
 				UV:         libfido2.True,
 			},
 		)
+		if errors.Is(err, libfido2.ErrPinRequired) {
+			pin, err := i.getPIN()
+			if err != nil {
+				return nil, err
+			}
+			assertion, err = device.Assertion(
+				i.relyingParty,
+				make([]byte, 32),
+				[][]byte{i.credentialID},
+				pin,
+				&libfido2.AssertionOpts{
+					Extensions: []libfido2.Extension{libfido2.HMACSecretExtension},
+					HMACSalt:   hmacSecretSalt(nonce),
+					UV:         libfido2.True,
+				},
+			)
+		}
 		if err != nil {
 			return nil, err
 		}
