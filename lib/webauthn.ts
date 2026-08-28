@@ -303,9 +303,8 @@ function prfResultToBytes(result: BufferSource): Uint8Array {
     if (ArrayBuffer.isView(result)) {
         return new Uint8Array(result.buffer, result.byteOffset, result.byteLength)
     }
-    // This is to handle non spec-compliant implementations that return a number
-    // array instead of a `BufferSource`.
-    // Known in noncompliance: 1Password browser extension (2026-05-30)
+    // This is for the noncompliant 1Password browser extension that returns a number
+    // array instead of a BufferSource. See https://github.com/FiloSottile/typage/pull/50.
     if (Array.isArray(result)) {
         return Uint8Array.from(result as number[])
     }
