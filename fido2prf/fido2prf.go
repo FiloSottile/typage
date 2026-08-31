@@ -6,44 +6,143 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"fmt"
 
 	"filippo.io/age"
 	"filippo.io/age/plugin"
 	"filippo.io/typage/fido2prf/internal/ctap2cbor"
 	"github.com/telesma-app/ctap/authenticator"
 	directhid "github.com/telesma-app/ctap/backend/hid"
+	directpcsc "github.com/telesma-app/ctap/backend/pcsc"
 	"github.com/telesma-app/ctap/cose"
 	"github.com/telesma-app/ctap/credential"
 	"github.com/telesma-app/ctap/protocol"
 	ctaptransport "github.com/telesma-app/ctap/transport"
 	"github.com/telesma-app/ctap/webauthn"
+	nativepcsc "github.com/telesma-app/pcsc"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/hkdf"
 )
 
-func NewCredential(rpID, pin string) (string, error) {
-	ctx := context.Background()
-	var paths []string
-	for info, err := range directhid.Devices(ctx) {
-		if err != nil {
-			return "", err
+type deviceLocation struct {
+	path      string
+	transport string
+}
+
+func (l deviceLocation) open(ctx context.Context) (ctaptransport.Device, error) {
+	if l.transport == "usb" {
+		return directhid.Open(ctx, l.path)
+	}
+	return directpcsc.Open(ctx, l.path)
+}
+
+func deviceLocations(ctx context.Context, transports []string, readerName string) ([]deviceLocation, error) {
+	auto := len(transports) == 0
+	usb := auto && readerName == ""
+	var pcscTransport string
+	for _, transport := range transports {
+		switch transport {
+		case "auto":
+			auto = true
+			usb = readerName == ""
+		case "usb":
+			usb = true
+		case "nfc", "smart-card":
+			pcscTransport = transport
 		}
-		paths = append(paths, info.Path)
 	}
-	if len(paths) == 0 {
+
+	var locations []deviceLocation
+	if usb {
+		for info, err := range directhid.Devices(ctx) {
+			if err != nil {
+				return nil, err
+			}
+			locations = append(locations, deviceLocation{path: info.Path, transport: "usb"})
+		}
+	}
+	if auto && len(locations) > 0 {
+		return locations, nil
+	}
+	if auto {
+		pcscTransport = "smart-card"
+	}
+	if pcscTransport != "" {
+		for reader, err := range directpcsc.Devices(ctx) {
+			if err != nil {
+				return nil, err
+			}
+			if readerName != "" && reader.Name != readerName {
+				continue
+			}
+			card, err := nativepcsc.Open(reader.Name)
+			if err != nil {
+				continue
+			}
+			cardInterface := card.Interface()
+			card.Close()
+
+			transport := pcscTransport
+			switch {
+			case auto && cardInterface == nativepcsc.CardInterfaceContactless:
+				transport = "nfc"
+			case auto && cardInterface == nativepcsc.CardInterfaceContact:
+				transport = "smart-card"
+			case auto:
+				continue
+			case transport == "nfc" && cardInterface != nativepcsc.CardInterfaceContactless:
+				continue
+			case transport == "smart-card" && cardInterface != nativepcsc.CardInterfaceContact:
+				continue
+			}
+			locations = append(locations, deviceLocation{path: reader.Name, transport: transport})
+		}
+	}
+	return locations, nil
+}
+
+func NewCredential(rpID, pin string, transports ...string) (string, error) {
+	return NewCredentialOnReader(rpID, pin, "", transports...)
+}
+
+func NewCredentialOnReader(rpID, pin, reader string, transports ...string) (string, error) {
+	ctx := context.Background()
+	locations, err := deviceLocations(ctx, transports, reader)
+	if err != nil {
+		return "", err
+	}
+
+	var device *authenticator.Device
+	var selectedTransport string
+	var selectedPath string
+	for _, location := range locations {
+		transport, err := location.open(ctx)
+		if err != nil {
+			continue
+		}
+		candidate, err := authenticator.New(ctx, transport)
+		if err != nil {
+			transport.Close()
+			continue
+		}
+		if device != nil {
+			candidate.Close()
+			device.Close()
+			if selectedTransport != "usb" && location.transport != "usb" {
+				return "", fmt.Errorf(
+					"multiple FIDO2 devices found in PC/SC readers %q and %q; specify one with -reader",
+					selectedPath,
+					location.path,
+				)
+			}
+			return "", errors.New("multiple FIDO2 devices found, please remove all but one")
+		}
+		device = candidate
+		selectedTransport = location.transport
+		selectedPath = location.path
+	}
+	if device == nil {
 		return "", errors.New("no FIDO2 devices found")
-	}
-	if len(paths) != 1 {
-		return "", errors.New("multiple FIDO2 devices found, please remove all but one")
-	}
-	transport, err := directhid.Open(ctx, paths[0])
-	if err != nil {
-		return "", err
-	}
-	device, err := authenticator.New(ctx, transport)
-	if err != nil {
-		transport.Close()
-		return "", err
 	}
 	defer device.Close()
 
@@ -96,7 +195,7 @@ func NewCredential(rpID, pin string) (string, error) {
 	identityData = ctap2cbor.AppendUint(identityData, 1)
 	identityData = ctap2cbor.AppendBytes(identityData, result.AuthData.AttestedCredentialData.CredentialID)
 	identityData = ctap2cbor.AppendString(identityData, rpID)
-	identityData = ctap2cbor.AppendArray(identityData, "usb")
+	identityData = ctap2cbor.AppendArray(identityData, selectedTransport)
 	return plugin.EncodeIdentity("fido2prf", identityData), nil
 }
 
@@ -112,22 +211,22 @@ const label = "age-encryption.org/fido2prf"
 
 func (i *Identity) assert(nonce []byte) ([]byte, error) {
 	ctx := context.Background()
+	locations, err := deviceLocations(ctx, i.transports, "")
+	if err != nil {
+		return nil, err
+	}
 	deviceFound := false
-	for info, err := range directhid.Devices(ctx) {
+	for _, location := range locations {
+		transport, err := location.open(ctx)
 		if err != nil {
-			return nil, err
-		}
-		deviceFound = true
-
-		transport, err := directhid.Open(ctx, info.Path)
-		if err != nil {
-			return nil, err
+			continue
 		}
 		device, err := authenticator.New(ctx, transport)
 		if err != nil {
 			transport.Close()
-			return nil, err
+			continue
 		}
+		deviceFound = true
 
 		credentialDescriptor := credential.PublicKeyCredentialDescriptor{
 			Type: credential.PublicKeyCredentialTypePublicKey,

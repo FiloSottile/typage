@@ -26,6 +26,10 @@ github.com/telesma-app/ctap v0.49.0 h1:V1y6Bd9dGh0Gk8h1guZm97/Pm36jkZIVbpn+7bcvo
 github.com/telesma-app/ctap v0.49.0/go.mod h1:dukcM+YqeHcxoVh5WDyPf4/YsejSiHwO7OIMPlHYZNw=
 github.com/telesma-app/hid v0.12.0 h1:iq+Bsb4drYOjKm9ZejpXbaC1cOFW6qCm9c+zSIh/U9M=
 github.com/telesma-app/hid v0.12.0/go.mod h1:wG21Rxqvsj9F+F7ItL4i76EDCwtaSaPILhe37M3ThgM=
+github.com/telesma-app/iso7816 v0.2.0 h1:Ny8ErRKmFOJ6IUcOdvw/HKjGOXATa//LUx/GHXlxT/M=
+github.com/telesma-app/iso7816 v0.2.0/go.mod h1:oI7P4NERU4/SeBbou5UYg9vHiBvSC7QWF9PbLxcjxb4=
+github.com/telesma-app/pcsc v0.9.0 h1:vrirJ9xMgJyPF41lG3wg4Te7fmA+46bnenF4aswjV8w=
+github.com/telesma-app/pcsc v0.9.0/go.mod h1:a083kzMqXUCC2DgPzHtF/TZ2p1msMAK9DSx4wS245lY=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
 golang.org/x/crypto v0.54.0 h1:YLIA59K4fiNzHzjnZt2tUJQjQtUWfWbeHBqKtk3eScw=
