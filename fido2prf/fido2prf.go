@@ -1,7 +1,7 @@
 package fido2prf
 
 import (
-	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -10,52 +10,94 @@ import (
 	"filippo.io/age"
 	"filippo.io/age/plugin"
 	"filippo.io/typage/fido2prf/internal/ctap2cbor"
-	"github.com/keys-pub/go-libfido2"
+	"github.com/telesma-app/ctap/authenticator"
+	directhid "github.com/telesma-app/ctap/backend/hid"
+	"github.com/telesma-app/ctap/cose"
+	"github.com/telesma-app/ctap/credential"
+	"github.com/telesma-app/ctap/protocol"
+	ctaptransport "github.com/telesma-app/ctap/transport"
+	"github.com/telesma-app/ctap/webauthn"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/hkdf"
 )
 
 func NewCredential(rpID, pin string) (string, error) {
-	locs, err := libfido2.DeviceLocations()
-	if err != nil {
-		return "", err
+	ctx := context.Background()
+	var paths []string
+	for info, err := range directhid.Devices(ctx) {
+		if err != nil {
+			return "", err
+		}
+		paths = append(paths, info.Path)
 	}
-	if len(locs) == 0 {
+	if len(paths) == 0 {
 		return "", errors.New("no FIDO2 devices found")
 	}
-	if len(locs) != 1 {
+	if len(paths) != 1 {
 		return "", errors.New("multiple FIDO2 devices found, please remove all but one")
 	}
-	device, err := libfido2.NewDevice(locs[0].Path)
+	transport, err := directhid.Open(ctx, paths[0])
 	if err != nil {
 		return "", err
 	}
-	a, err := device.MakeCredential(
-		// The client data hash is not useful without attestation.
-		bytes.Repeat([]byte{0}, 32),
-		libfido2.RelyingParty{ID: rpID},
-		libfido2.User{
-			// These are not used for non-resident credentials,
-			// but the Go wrapper requires them.
+	device, err := authenticator.New(ctx, transport)
+	if err != nil {
+		transport.Close()
+		return "", err
+	}
+	defer device.Close()
+
+	var pinUvAuthToken []byte
+	options := map[protocol.Option]bool{protocol.OptionResidentKeys: false}
+	if pin == "" {
+		options[protocol.OptionUserVerification] = true
+	} else {
+		pinUvAuthToken, err = device.GetPinUvAuthTokenUsingPIN(
+			ctx,
+			pin,
+			protocol.PermissionMakeCredential,
+			rpID,
+		)
+		if err != nil {
+			return "", err
+		}
+		defer clear(pinUvAuthToken)
+	}
+
+	result, err := device.MakeCredential(
+		ctx,
+		pinUvAuthToken,
+		nil,
+		credential.PublicKeyCredentialRpEntity{ID: rpID},
+		credential.PublicKeyCredentialUserEntity{
+			// These are not used for non-resident credentials, but CTAP requires them.
 			ID:   []byte{0},
-			Name: "age-encryption.org/fido2prf",
+			Name: label,
 		},
-		libfido2.ES256,
-		pin,
-		&libfido2.MakeCredentialOpts{
-			Extensions: []libfido2.Extension{libfido2.HMACSecretExtension},
-			RK:         libfido2.False,
-			UV:         libfido2.True,
-		})
+		[]credential.PublicKeyCredentialParameters{{
+			Type:      credential.PublicKeyCredentialTypePublicKey,
+			Algorithm: cose.AlgorithmES256,
+		}},
+		nil,
+		&webauthn.CreateAuthenticationExtensionsClientInputs{
+			CreateHMACSecretInputs: &webauthn.CreateHMACSecretInputs{
+				HMACCreateSecret: true,
+			},
+		},
+		options,
+		0,
+		nil,
+	)
 	if err != nil {
 		return "", err
 	}
-	var identity []byte
-	identity = ctap2cbor.AppendUint(identity, 1)
-	identity = ctap2cbor.AppendBytes(identity, a.CredentialID)
-	identity = ctap2cbor.AppendString(identity, rpID)
-	identity = ctap2cbor.AppendArray(identity, "usb")
-	return plugin.EncodeIdentity("fido2prf", identity), nil
+
+	var identityData []byte
+	identityData = ctap2cbor.AppendUint(identityData, 1)
+	identityData = ctap2cbor.AppendBytes(identityData, result.AuthData.AttestedCredentialData.CredentialID)
+	identityData = ctap2cbor.AppendString(identityData, rpID)
+	identityData = ctap2cbor.AppendArray(identityData, "usb")
+	return plugin.EncodeIdentity("fido2prf", identityData), nil
 }
 
 type Identity struct {
@@ -69,75 +111,115 @@ type Identity struct {
 const label = "age-encryption.org/fido2prf"
 
 func (i *Identity) assert(nonce []byte) ([]byte, error) {
-	locs, err := libfido2.DeviceLocations()
-	if err != nil {
-		return nil, err
-	}
-	if len(locs) == 0 {
-		return nil, errors.New("no FIDO2 devices found")
-	}
-	for _, loc := range locs {
-		device, err := libfido2.NewDevice(loc.Path)
+	ctx := context.Background()
+	deviceFound := false
+	for info, err := range directhid.Devices(ctx) {
 		if err != nil {
 			return nil, err
 		}
+		deviceFound = true
 
-		// First probe to check if the credential ID matches the device,
-		// before requiring user interaction.
-		if _, err := device.Assertion(
-			i.relyingParty,
-			make([]byte, 32),
-			[][]byte{i.credentialID},
-			"",
-			&libfido2.AssertionOpts{
-				UP: libfido2.False,
-			},
-		); errors.Is(err, libfido2.ErrNoCredentials) {
-			continue
-		} else if err != nil {
+		transport, err := directhid.Open(ctx, info.Path)
+		if err != nil {
+			return nil, err
+		}
+		device, err := authenticator.New(ctx, transport)
+		if err != nil {
+			transport.Close()
 			return nil, err
 		}
 
-		// Try built-in user verification first (for devices that handle it
-		// on-device). libfido2 returns ErrPinRequired if a client PIN is needed.
-		assertion, err := device.Assertion(
+		credentialDescriptor := credential.PublicKeyCredentialDescriptor{
+			Type: credential.PublicKeyCredentialTypePublicKey,
+			ID:   i.credentialID,
+		}
+
+		// First probe to check if the credential ID matches the device, before
+		// requiring user interaction.
+		var assertion protocol.AuthenticatorGetAssertionResponse
+		for assertion, err = range device.GetAssertion(
+			ctx,
+			nil,
 			i.relyingParty,
-			make([]byte, 32),
-			[][]byte{i.credentialID},
-			"",
-			&libfido2.AssertionOpts{
-				Extensions: []libfido2.Extension{libfido2.HMACSecretExtension},
-				HMACSalt:   hmacSecretSalt(nonce),
-				UV:         libfido2.True,
+			nil,
+			[]credential.PublicKeyCredentialDescriptor{credentialDescriptor},
+			nil,
+			map[protocol.Option]bool{protocol.OptionUserPresence: false},
+		) {
+			break
+		}
+		if err != nil {
+			var ctapErr *ctaptransport.CTAPError
+			if errors.As(err, &ctapErr) && ctapErr.StatusCode == ctaptransport.CTAP2_ERR_NO_CREDENTIALS {
+				device.Close()
+				continue
+			}
+			device.Close()
+			return nil, err
+		}
+
+		salts := hmacSecretSalt(nonce)
+		extensions := &webauthn.GetAuthenticationExtensionsClientInputs{
+			GetHMACSecretInputs: &webauthn.GetHMACSecretInputs{
+				HMACGetSecret: webauthn.HMACGetSecretInput{
+					Salt1: salts[:32],
+					Salt2: salts[32:],
+				},
 			},
-		)
-		if errors.Is(err, libfido2.ErrPinRequired) {
+		}
+
+		var pinUvAuthToken []byte
+		var options map[protocol.Option]bool
+		cachedInfo, _ := device.GetInfoCached()
+		if cachedInfo.Options[protocol.OptionUserVerification] {
+			options = map[protocol.Option]bool{protocol.OptionUserVerification: true}
+		} else {
 			pin, err := i.getPIN()
 			if err != nil {
+				device.Close()
 				return nil, err
 			}
-			assertion, err = device.Assertion(
-				i.relyingParty,
-				make([]byte, 32),
-				[][]byte{i.credentialID},
+			pinUvAuthToken, err = device.GetPinUvAuthTokenUsingPIN(
+				ctx,
 				pin,
-				&libfido2.AssertionOpts{
-					Extensions: []libfido2.Extension{libfido2.HMACSecretExtension},
-					HMACSalt:   hmacSecretSalt(nonce),
-					UV:         libfido2.True,
-				},
+				protocol.PermissionGetAssertion,
+				i.relyingParty,
 			)
+			if err != nil {
+				device.Close()
+				return nil, err
+			}
+			defer clear(pinUvAuthToken)
+		}
+
+		for assertion, err = range device.GetAssertion(
+			ctx,
+			pinUvAuthToken,
+			i.relyingParty,
+			nil,
+			[]credential.PublicKeyCredentialDescriptor{credentialDescriptor},
+			extensions,
+			options,
+		) {
+			break
 		}
 		if err != nil {
+			device.Close()
 			return nil, err
 		}
 
-		if assertion.HMACSecret == nil {
-			return nil, errors.New("FIDO2 device doesn't support HMACSecret extension")
-		}
-		return assertion.HMACSecret, nil
+		output := assertion.ExtensionOutputs.GetHMACSecretOutputs.HMACGetSecret
+		secret := make([]byte, 0, 64)
+		secret = append(secret, output.Output1...)
+		secret = append(secret, output.Output2...)
+		clear(output.Output1)
+		clear(output.Output2)
+		device.Close()
+		return secret, nil
 	}
-
+	if !deviceFound {
+		return nil, errors.New("no FIDO2 devices found")
+	}
 	return nil, errors.New("identity doesn't match any FIDO2 device")
 }
 
@@ -187,7 +269,9 @@ func (i *Identity) Unwrap(s []*age.Stanza) ([]byte, error) {
 			return nil, err
 		}
 		key := hkdf.Extract(sha256.New, secret, []byte(label))
+		clear(secret)
 		fileKey, err := aeadDecrypt(key, 16, stanza.Body)
+		clear(key)
 		if err != nil {
 			continue
 		}
@@ -209,7 +293,9 @@ func (i *Identity) WrapWithLabels(fileKey []byte) ([]*age.Stanza, []string, erro
 		return nil, nil, err
 	}
 	key := hkdf.Extract(sha256.New, secret, []byte(label))
+	clear(secret)
 	ciphertext, err := aeadEncrypt(key, fileKey)
+	clear(key)
 	if err != nil {
 		return nil, nil, err
 	}
