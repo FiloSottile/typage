@@ -274,8 +274,16 @@ EOF
 ```
 
 Credentials can be generated from the command line with `age-plugin-fido2prf
--generate RPID`. Note that they will be usable inside the browser only if the
-relying party ID matches the website's origin.
+-generate RPID`. The plugin uses USB when available and falls back to PC/SC,
+detecting contactless cards as `nfc` and contact cards as `smart-card`. Pass
+`-transport usb`, `-transport nfc`, or `-transport smart-card` to override
+automatic selection; `nfc` and `smart-card` select only readers with the
+matching physical interface. Note that credentials will be usable inside the
+browser only if the relying party ID matches the website's origin.
+
+If multiple matching PC/SC readers contain FIDO2 cards, select one by its exact
+name with `-reader`. Reader names are used only during credential generation and
+are not stored in the identity.
 
 All the features of the plugin are also available as a Go library at
 [filippo.io/typage/fido2prf](https://pkg.go.dev/filippo.io/typage/fido2prf).

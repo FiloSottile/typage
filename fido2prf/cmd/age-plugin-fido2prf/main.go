@@ -22,10 +22,20 @@ func main() {
 	}
 
 	generate := flag.String("generate", "", "Generate a new credential for the given relying party ID.")
+	transport := flag.String("transport", "auto", "Transport to use when generating a credential: auto, usb, nfc, or smart-card.")
+	reader := flag.String("reader", "", "PC/SC reader name to use when generating a credential.")
 	p.RegisterFlags(nil)
 	flag.Parse()
 
 	if *generate != "" {
+		if *transport != "auto" && *transport != "usb" && *transport != "nfc" && *transport != "smart-card" {
+			fmt.Printf("Error: unsupported transport %q\n", *transport)
+			os.Exit(1)
+		}
+		if *reader != "" && *transport == "usb" {
+			fmt.Println("Error: -reader can't be used with -transport usb")
+			os.Exit(1)
+		}
 		fmt.Fprintf(os.Stderr, "Enter the security key PIN: ")
 		pin, err := term.ReadPassword(int(os.Stdin.Fd()))
 		if err != nil {
@@ -34,7 +44,7 @@ func main() {
 		}
 		fmt.Fprintf(os.Stderr, "\r\033[K") // Clear the line.
 
-		identity, err := fido2prf.NewCredential(*generate, string(pin))
+		identity, err := fido2prf.NewCredentialOnReader(*generate, string(pin), *reader, *transport)
 		if err != nil {
 			fmt.Printf("Error: %s\n", err)
 			os.Exit(1)
