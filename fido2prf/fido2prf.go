@@ -68,13 +68,11 @@ type Identity struct {
 
 const label = "age-encryption.org/fido2prf"
 
-func (i *Identity) assert(nonce []byte) ([]byte, error) {
+// pins maps devices to PINs provided by the user in previous function calls.
+func (i *Identity) assert(nonce []byte, pins map[string]string) ([]byte, error) {
 	locs, err := libfido2.DeviceLocations()
 	if err != nil {
 		return nil, err
-	}
-	if len(locs) == 0 {
-		return nil, errors.New("no FIDO2 devices found")
 	}
 	for _, loc := range locs {
 		device, err := libfido2.NewDevice(loc.Path)
@@ -90,6 +88,7 @@ func (i *Identity) assert(nonce []byte) ([]byte, error) {
 			[][]byte{i.credentialID},
 			"",
 			&libfido2.AssertionOpts{
+				// Do not require user presence (e.g. user touching device).
 				UP: libfido2.False,
 			},
 		); errors.Is(err, libfido2.ErrNoCredentials) {
@@ -100,19 +99,22 @@ func (i *Identity) assert(nonce []byte) ([]byte, error) {
 
 		// Try built-in user verification first (for devices that handle it
 		// on-device). libfido2 returns ErrPinRequired if a client PIN is needed.
+		pin, cached := pins[loc.Path]
 		assertion, err := device.Assertion(
 			i.relyingParty,
 			make([]byte, 32),
 			[][]byte{i.credentialID},
-			"",
+			// Known PIN for device or "" if a pin has not been entered yet.
+			pin,
 			&libfido2.AssertionOpts{
 				Extensions: []libfido2.Extension{libfido2.HMACSecretExtension},
 				HMACSalt:   hmacSecretSalt(nonce),
 				UV:         libfido2.True,
 			},
 		)
-		if errors.Is(err, libfido2.ErrPinRequired) {
-			pin, err := i.getPIN()
+		if !cached && errors.Is(err, libfido2.ErrPinRequired) {
+			// Reuse the outer err so the retry can clear ErrPinRequired.
+			pin, err = i.getPIN()
 			if err != nil {
 				return nil, err
 			}
@@ -127,6 +129,9 @@ func (i *Identity) assert(nonce []byte) ([]byte, error) {
 					UV:         libfido2.True,
 				},
 			)
+			if err == nil {
+				pins[loc.Path] = pin
+			}
 		}
 		if err != nil {
 			return nil, err
@@ -138,7 +143,9 @@ func (i *Identity) assert(nonce []byte) ([]byte, error) {
 		return assertion.HMACSecret, nil
 	}
 
-	return nil, errors.New("identity doesn't match any FIDO2 device")
+	// Let age try the next identity when no connected device matches.
+	// Returning a different error would abort decryption.
+	return nil, age.ErrIncorrectIdentity
 }
 
 func hmacSecretSalt(nonce []byte) []byte {
@@ -171,6 +178,7 @@ func hmacSecretSalt(nonce []byte) []byte {
 }
 
 func (i *Identity) Unwrap(s []*age.Stanza) ([]byte, error) {
+	pins := make(map[string]string)
 	for _, stanza := range s {
 		if stanza.Type != label {
 			continue
@@ -182,7 +190,7 @@ func (i *Identity) Unwrap(s []*age.Stanza) ([]byte, error) {
 		if err != nil || len(nonce) != 16 {
 			return nil, errors.New("fido2prf: invalid nonce")
 		}
-		secret, err := i.assert(nonce)
+		secret, err := i.assert(nonce, pins)
 		if err != nil {
 			return nil, err
 		}
@@ -204,7 +212,10 @@ func (i *Identity) WrapWithLabels(fileKey []byte) ([]*age.Stanza, []string, erro
 	if _, err := rand.Read(nonce); err != nil {
 		return nil, nil, err
 	}
-	secret, err := i.assert(nonce)
+	secret, err := i.assert(nonce, make(map[string]string))
+	if errors.Is(err, age.ErrIncorrectIdentity) {
+		return nil, nil, errors.New("no matching FIDO2 device")
+	}
 	if err != nil {
 		return nil, nil, err
 	}
